@@ -1,19 +1,27 @@
 <template>
   <div class="min-h-screen bg-fuse-black">
     <!-- Nav -->
-    <nav class="border-b border-fuse-border px-6 py-4 flex items-center justify-between">
+    <nav class="border-b border-fuse-border/60 px-6 py-4 flex items-center justify-between backdrop-blur-sm bg-fuse-black/80 sticky top-0 z-10">
       <div class="flex items-center gap-3">
-        <button @click="navigateTo('/projects')" class="text-fuse-dim hover:text-fuse-text transition-colors text-sm">← Projects</button>
+        <button @click="navigateTo('/projects')" class="text-fuse-dim hover:text-fuse-text transition-colors text-sm flex items-center gap-1.5">
+          <span>←</span> <span>Projects</span>
+        </button>
         <span class="text-fuse-border">/</span>
         <span class="text-fuse-text font-medium text-sm">{{ project?.name }}</span>
       </div>
-      <div class="flex items-center gap-2">
-        <div class="w-2 h-2 rounded-full" :class="wsConnected ? 'bg-fuse-green animate-pulse-slow' : 'bg-fuse-muted'" />
-        <span class="text-fuse-dim text-xs font-mono">{{ wsConnected ? `${connectedClients} client(s) live` : 'no clients' }}</span>
+      <div class="flex items-center gap-3">
+        <!-- Connection status pill -->
+        <div class="connection-pill" :class="wsConnected ? 'connection-pill--connected' : 'connection-pill--offline'">
+          <span class="connection-dot" :class="wsConnected ? 'connection-dot--connected' : 'connection-dot--offline'" />
+          <span v-if="wsConnected" class="font-mono text-xs">
+            {{ connectedClients }} {{ connectedClients === 1 ? 'client' : 'clients' }} connected
+          </span>
+          <span v-else class="font-mono text-xs">No clients connected</span>
+        </div>
       </div>
     </nav>
 
-    <main v-if="project" class="max-w-4xl mx-auto px-6 py-10 space-y-8 animate-slide-up">
+    <main v-if="project" class="max-w-4xl mx-auto px-6 py-10 space-y-6 animate-slide-up">
       <!-- Project header -->
       <div class="flex items-start justify-between">
         <div>
@@ -23,7 +31,28 @@
         <StatusBadge :state="project.state" size="lg" />
       </div>
 
-      <!-- Current state panel -->
+      <!-- Client connection banner -->
+      <div class="client-status-banner" :class="wsConnected ? 'client-status-banner--ok' : 'client-status-banner--warn'">
+        <div class="flex items-center gap-3">
+          <span class="text-lg">{{ wsConnected ? '🟢' : '🔴' }}</span>
+          <div>
+            <p class="text-sm font-bold" :class="wsConnected ? 'text-fuse-green' : 'text-fuse-red'">
+              {{ wsConnected ? `${connectedClients} client instance${connectedClients === 1 ? '' : 's'} connected` : 'No SDK clients connected' }}
+            </p>
+            <p class="text-xs text-fuse-dim mt-0.5">
+              {{ wsConnected
+                ? 'State changes will broadcast instantly to all connected clients.'
+                : 'Deploy the dead-fuse SDK in your client app to start monitoring. See the Integration section below.' }}
+            </p>
+          </div>
+        </div>
+        <div v-if="wsConnected" class="text-right hidden sm:block">
+          <p class="text-xs text-fuse-dim font-mono">Last seen</p>
+          <p class="text-xs text-fuse-green font-mono">just now</p>
+        </div>
+      </div>
+
+      <!-- Stats -->
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div class="stat-card">
           <span class="stat-label">Current State</span>
@@ -98,15 +127,10 @@
               <button @click="copy(snippet, 'snippet')" class="copy-btn absolute top-3 right-3">
                 {{ copied === 'snippet' ? '✓ Copied' : 'Copy' }}
               </button>
-              <pre class="text-xs text-fuse-dim overflow-x-auto whitespace-pre">{{ snippet }}</pre>
+              <pre class="text-xs text-fuse-dim overflow-x-auto whitespace-pre pr-16">{{ snippet }}</pre>
             </div>
           </div>
         </div>
-      </div>
-
-      <div v-if="statusMsg" class="fixed bottom-6 right-6 bg-fuse-zinc border px-4 py-2 rounded-lg text-sm font-mono transition-all"
-        :class="statusMsg.type === 'success' ? 'border-fuse-green text-fuse-green' : 'border-fuse-red text-fuse-red'">
-        {{ statusMsg.text }}
       </div>
     </main>
 
@@ -115,6 +139,12 @@
         <p class="text-fuse-dim mb-4">Project not found.</p>
         <button @click="navigateTo('/projects')" class="btn-primary">Back to Projects</button>
       </div>
+    </div>
+
+    <!-- Toast -->
+    <div v-if="statusMsg" class="fixed bottom-6 right-6 bg-fuse-zinc border px-4 py-2 rounded-lg text-sm font-mono transition-all z-50"
+      :class="statusMsg.type === 'success' ? 'border-fuse-green text-fuse-green' : 'border-fuse-red text-fuse-red'">
+      {{ statusMsg.text }}
     </div>
   </div>
 </template>
@@ -138,6 +168,7 @@ const connectedClients = ref(0)
 const statusMsg = ref<{ text: string; type: 'success' | 'error' } | null>(null)
 
 let statusTimer: ReturnType<typeof setTimeout> | null = null
+let pollTimer: ReturnType<typeof setInterval> | null = null
 
 onMounted(async () => {
   try {
@@ -148,7 +179,28 @@ onMounted(async () => {
     notFound.value = true
     return
   }
+
+  // Poll for connected client count
+  await pollClientStatus()
+  pollTimer = setInterval(pollClientStatus, 5000)
 })
+
+onUnmounted(() => {
+  if (pollTimer) clearInterval(pollTimer)
+})
+
+async function pollClientStatus() {
+  if (!project.value) return
+  try {
+    const res = await $fetch<{ connected: number }>(`/api/projects/${id}/clients`)
+    connectedClients.value = res.connected
+    wsConnected.value = res.connected > 0
+  } catch {
+    // endpoint may not exist, graceful fallback
+    wsConnected.value = false
+    connectedClients.value = 0
+  }
+}
 
 const snippet = computed(() => {
   if (!project.value) return ''
@@ -247,14 +299,43 @@ function showStatus(text: string, type: 'success' | 'error') {
 </script>
 
 <style scoped>
+.connection-pill {
+  @apply flex items-center gap-2 px-3 py-1.5 rounded-full border text-xs font-medium transition-all duration-300;
+}
+.connection-pill--connected {
+  @apply bg-fuse-green/10 border-fuse-green/30 text-fuse-green;
+}
+.connection-pill--offline {
+  @apply bg-fuse-muted/10 border-fuse-border text-fuse-dim;
+}
+.connection-dot {
+  @apply w-1.5 h-1.5 rounded-full flex-shrink-0;
+}
+.connection-dot--connected {
+  @apply bg-fuse-green animate-pulse;
+}
+.connection-dot--offline {
+  @apply bg-fuse-muted;
+}
+
+.client-status-banner {
+  @apply rounded-xl border p-4 flex items-center justify-between gap-4;
+}
+.client-status-banner--ok {
+  @apply bg-fuse-green/5 border-fuse-green/20;
+}
+.client-status-banner--warn {
+  @apply bg-fuse-red/5 border-fuse-red/20;
+}
+
 .panel {
-  @apply bg-fuse-carbon border border-fuse-border rounded-xl p-6;
+  @apply bg-white/[0.025] backdrop-blur-sm border border-white/[0.07] rounded-xl p-6;
 }
 .panel-title {
   @apply text-sm font-bold text-fuse-text uppercase tracking-widest font-mono mb-4;
 }
 .stat-card {
-  @apply bg-fuse-carbon border border-fuse-border rounded-xl p-4 flex flex-col gap-1;
+  @apply bg-white/[0.025] backdrop-blur-sm border border-white/[0.07] rounded-xl p-4 flex flex-col gap-1;
 }
 .stat-label {
   @apply text-xs font-mono text-fuse-dim uppercase tracking-widest;
