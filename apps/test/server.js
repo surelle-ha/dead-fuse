@@ -12,9 +12,11 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "public")));
 
-let executionContext = {
+let appState = {
   logs: [],
   lastError: null,
+  currentMessage: null,
+  messageType: null, // 'warning', 'locked', 'readonly', 'active'
 };
 
 // Intercept console methods to capture output
@@ -33,7 +35,7 @@ function captureLog(...args) {
     }
     return String(arg);
   }).join(" ");
-  executionContext.logs.push({ type: "log", message });
+  appState.logs.push({ type: "log", message, timestamp: new Date().toISOString() });
   originalLog(...args);
 }
 
@@ -48,7 +50,7 @@ function captureError(...args) {
     }
     return String(arg);
   }).join(" ");
-  executionContext.logs.push({ type: "error", message });
+  appState.logs.push({ type: "error", message, timestamp: new Date().toISOString() });
   originalError(...args);
 }
 
@@ -63,7 +65,7 @@ function captureWarn(...args) {
     }
     return String(arg);
   }).join(" ");
-  executionContext.logs.push({ type: "warn", message });
+  appState.logs.push({ type: "warn", message, timestamp: new Date().toISOString() });
   originalWarn(...args);
 }
 
@@ -81,10 +83,10 @@ app.get("/api/status", (req, res) => {
     config: config ? {
       projectId: config.projectId,
       master: config.master,
-      token: config.token?.substring(0, 10) + "***",
     } : null,
-    logs: executionContext.logs.slice(-100), // Last 100 logs
-    lastError: executionContext.lastError,
+    message: appState.currentMessage,
+    messageType: appState.messageType,
+    logs: appState.logs.slice(-50), // Last 50 logs
   });
 });
 
@@ -97,60 +99,49 @@ app.get("/api/logs", (req, res) => {
 
 // API: Clear logs
 app.post("/api/logs/clear", (req, res) => {
-  executionContext.logs = [];
-  executionContext.lastError = null;
+  appState.logs = [];
   res.json({ success: true });
 });
 
-// API: Execute custom code
-app.post("/api/execute", express.json(), (req, res) => {
-  const { code } = req.body;
-
-  if (!code) {
-    return res.status(400).json({ error: "No code provided" });
-  }
-
-  try {
-    executionContext.logs = [];
-    executionContext.lastError = null;
-
-    // Create function with access to DeadFuse and console
-    const fn = new Function("DeadFuse", "console", `
-      (async () => {
-        ${code}
-      })()
-    `);
-
-    fn(DeadFuse, console);
-
-    res.json({
-      success: true,
-      logs: executionContext.logs,
-    });
-  } catch (error) {
-    executionContext.lastError = error.message;
-    executionContext.logs.push({
-      type: "error",
-      message: error.message,
-    });
-
-    res.json({
-      success: false,
-      error: error.message,
-      logs: executionContext.logs,
-    });
-  }
+// API: Clear message
+app.post("/api/message/clear", (req, res) => {
+  appState.currentMessage = null;
+  appState.messageType = null;
+  res.json({ success: true });
 });
+
+
 
 // API: Activate DeadFuse
 app.post("/api/activate", express.json(), (req, res) => {
-  const { projectId, master, token } = req.body;
+  const { projectId, master, token, fallbackMode } = req.body;
 
   try {
     const config = {
       projectId: projectId || "test-project-id",
       master: master || "ws://localhost:3000/fuse",
       token: token || "test-token",
+      fallbackMode: fallbackMode || "readonly",
+      onActive: () => {
+        appState.currentMessage = "DeadFuse is active";
+        appState.messageType = "active";
+        captureLog("[DeadFuse] Active");
+      },
+      onWarning: (msg) => {
+        appState.currentMessage = msg;
+        appState.messageType = "warning";
+        captureWarn("[DeadFuse] Warning:", msg);
+      },
+      onReadonly: () => {
+        appState.currentMessage = "Read-only mode enabled";
+        appState.messageType = "readonly";
+        captureWarn("[DeadFuse] Read-only mode");
+      },
+      onLocked: (msg) => {
+        appState.currentMessage = msg;
+        appState.messageType = "locked";
+        captureError("[DeadFuse] Locked:", msg);
+      },
     };
 
     DeadFuse.activate(config);
@@ -163,6 +154,8 @@ app.post("/api/activate", express.json(), (req, res) => {
       },
     });
   } catch (error) {
+    appState.lastError = error.message;
+    captureError(error.message);
     res.status(400).json({
       success: false,
       error: error.message,
@@ -174,6 +167,9 @@ app.post("/api/activate", express.json(), (req, res) => {
 app.post("/api/deactivate", (req, res) => {
   try {
     DeadFuse.deactivate();
+    appState.currentMessage = null;
+    appState.messageType = null;
+    captureLog("[DeadFuse] Deactivated");
     res.json({ success: true });
   } catch (error) {
     res.status(400).json({
