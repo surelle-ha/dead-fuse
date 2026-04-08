@@ -1,0 +1,16 @@
+{
+  "name": "dead-fuse-monorepo",
+  "private": true,
+  "scripts": {
+    "dev": "pnpm --filter dashboard dev",
+    "build": "pnpm --filter client build && pnpm --filter dashboard build",
+    "build:client": "pnpm --filter client build",
+    "build:dashboard": "pnpm --filter dashboard build",
+    "migrate": "pnpm --filter dashboard migrate",
+    "lint": "pnpm -r lint",
+    "typecheck": "pnpm -r typecheck"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.5"
+  }
+}
