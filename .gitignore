@@ -6,3 +6,4 @@ dist/
 *.local
 .pnpm-store/
 coverage/
+VIBE.md
