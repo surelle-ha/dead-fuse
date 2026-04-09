@@ -12,7 +12,7 @@
 
       <!-- Tab switcher -->
       <div class="flex bg-fuse-zinc border border-fuse-border rounded-lg p-1 mb-6">
-        <button v-for="tab in ['login', 'register']" :key="tab"
+        <button v-for="tab in tabs" :key="tab"
           @click="mode = tab"
           class="flex-1 py-1.5 text-sm rounded-md font-medium transition-all duration-200 capitalize"
           :class="mode === tab ? 'bg-fuse-red text-white' : 'text-fuse-dim hover:text-fuse-text'">
@@ -38,6 +38,12 @@
         </button>
       </form>
 
+      <div v-if="mode === 'login'" class="mt-4">
+        <button @click="loginWithGithub" type="button" class="btn-secondary w-full">
+          Continue with GitHub
+        </button>
+      </div>
+
       <p class="text-center text-fuse-dim text-xs mt-8 font-mono">
         DeadFuse.js — Ethical License Enforcement
       </p>
@@ -49,6 +55,7 @@
 definePageMeta({ layout: false })
 
 const router = useRouter()
+const tabs = ref<('login' | 'register')[]>(['login', 'register'])
 const mode = ref<'login' | 'register'>('login')
 const email = ref('')
 const password = ref('')
@@ -78,6 +85,10 @@ async function submit() {
   } finally {
     loading.value = false
   }
+}
+
+function loginWithGithub() {
+  window.location.href = '/api/auth/github'
 }
 </script>
 

@@ -48,6 +48,13 @@ export default defineEventHandler(async (event) => {
     });
   }
 
+  if (!existingUser.password_hash) {
+    throw createError({
+      statusCode: 401,
+      statusMessage: "This account uses GitHub login. Please sign in with GitHub.",
+    });
+  }
+
   // Verify password
   const { comparePassword } = await import("../../utils/auth");
   const isPasswordValid = await comparePassword(password, existingUser.password_hash);

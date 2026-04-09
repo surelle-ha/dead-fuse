@@ -387,7 +387,7 @@ function testerActivate() {
     DeadFuse.activate({
       projectId: project.value.project_key,
       token: project.value.public_token,
-      fallbackMode: 'readonly',
+      fallbackMode: 'READONLY',
       ...stateListeners,
     })
     

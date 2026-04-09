@@ -5,7 +5,9 @@
 create table if not exists users (
   id uuid primary key default gen_random_uuid(),
   email text unique not null,
-  password_hash text not null,
+  password_hash text,
+  provider text,
+  provider_id text,
   created_at timestamptz default now()
 );
 
