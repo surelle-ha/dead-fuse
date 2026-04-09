@@ -12,7 +12,9 @@
       "types": "./dist/index.d.ts"
     }
   },
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "tsup src/index.ts --format esm,cjs --dts --clean",
     "dev": "tsup src/index.ts --format esm,cjs --dts --watch",
@@ -22,6 +24,15 @@
     "tsup": "^8.0.2",
     "typescript": "^5.4.5"
   },
-  "keywords": ["license", "enforcement", "remote-control", "websocket", "freelance"],
-  "license": "MIT"
+  "keywords": [
+    "license",
+    "enforcement",
+    "remote-control",
+    "websocket",
+    "freelance"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.102.1"
+  }
 }

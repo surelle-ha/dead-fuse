@@ -21,6 +21,15 @@
         "{{ project.message }}"
       </div>
 
+      <div v-if="project.client_name || project.priority" class="flex items-center gap-2 mb-3">
+        <span v-if="project.client_name" class="text-fuse-dim text-xs bg-white/[0.05] px-2 py-1 rounded-full">
+          {{ project.client_name }}
+        </span>
+        <span v-if="project.priority" class="text-fuse-dim text-xs bg-white/[0.05] px-2 py-1 rounded-full capitalize">
+          {{ project.priority }}
+        </span>
+      </div>
+
       <div class="flex items-center justify-between pt-3 border-t border-white/[0.06]">
         <span class="text-fuse-dim text-xs font-mono">Grace: {{ project.grace_period }}d</span>
         <span class="text-fuse-dim text-xs opacity-60">{{ formatDate(project.updated_at) }}</span>
@@ -39,6 +48,9 @@ defineProps<{
     state: string
     message: string
     grace_period: number
+    client_name?: string
+    target_completion?: string
+    priority?: string
     updated_at: string
   }
 }>()

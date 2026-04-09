@@ -6,13 +6,14 @@
     "dev": "nuxt dev",
     "build": "nuxt build",
     "preview": "nuxt preview",
-    "migrate": "node -e \"require('./server/migrate.cjs')\"",
+    "migrate": "node server/migrate.cjs",
     "typecheck": "nuxt typecheck"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.102.1",
     "bcryptjs": "^2.4.3",
     "jsonwebtoken": "^9.0.2",
+    "lucide-vue-next": "^0.353.0",
     "pg": "^8.11.5"
   },
   "devDependencies": {

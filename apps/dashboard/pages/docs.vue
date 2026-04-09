@@ -1,19 +1,6 @@
 <template>
-  <div class="min-h-screen bg-fuse-black">
-    <!-- Nav -->
-    <nav class="border-b border-fuse-border/60 px-6 py-4 flex items-center justify-between backdrop-blur-sm bg-fuse-black/80 sticky top-0 z-10">
-      <div class="flex items-center gap-3">
-        <div class="w-7 h-7 bg-fuse-red rounded-sm flex items-center justify-center shadow-lg shadow-fuse-red/20">
-          <span class="text-white font-mono text-xs font-bold">DF</span>
-        </div>
-        <span class="font-bold text-fuse-text">DeadFuse</span>
-      </div>
-      <div class="flex items-center gap-4">
-        <button @click="navigateTo('/projects')" class="text-fuse-dim hover:text-fuse-text text-sm transition-colors">← Back to Projects</button>
-      </div>
-    </nav>
-
-    <main class="max-w-4xl mx-auto px-6 py-12 animate-slide-up">
+  <div class="min-h-screen flex flex-col bg-fuse-black">
+    <main class="flex-1 max-w-4xl mx-auto px-6 py-12 animate-slide-up">
       <!-- Header -->
       <div class="mb-12">
         <div class="inline-flex items-center gap-2 bg-fuse-red/10 border border-fuse-red/20 text-fuse-red text-xs font-mono px-3 py-1 rounded-full mb-4">
@@ -81,6 +68,16 @@
             <pre class="code-content">npm install dead-fuse
 # or
 pnpm add dead-fuse</pre>
+          </div>
+        </section>
+
+        <!-- Project Limits -->
+        <section id="limits">
+          <h2 class="doc-heading">Project Limits</h2>
+          <p class="doc-body">Each dashboard user can create up to <strong>2 projects</strong>. If you hit the limit, the Projects page shows an upgrade notice and prevents additional project creation until you upgrade.</p>
+          <div class="info-card mt-5">
+            <span class="info-label">Project limit</span>
+            <span class="info-value">2 projects per user</span>
           </div>
         </section>
 
@@ -179,8 +176,25 @@ pnpm add dead-fuse</pre>
       </div>
     </main>
 
-    <!-- Footer -->
-    <DashboardFooter />
+    <footer class="border-t border-fuse-border/40 px-6 py-8 bg-fuse-black/50">
+      <div class="max-w-4xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div class="flex items-center gap-3">
+          <div class="w-6 h-6 bg-fuse-red/80 rounded-sm flex items-center justify-center">
+            <span class="text-white font-mono text-xs font-bold leading-none">DF</span>
+          </div>
+          <span class="text-fuse-dim text-xs font-mono">DeadFuse.js — Ethical License Enforcement</span>
+        </div>
+        <div class="flex items-center gap-6">
+          <NuxtLink to="/docs" class="text-fuse-dim hover:text-fuse-text text-xs font-mono transition-colors">
+            Docs
+          </NuxtLink>
+          <a href="https://github.com" target="_blank" rel="noopener" class="text-fuse-dim hover:text-fuse-text text-xs font-mono transition-colors">
+            GitHub
+          </a>
+          <span class="text-fuse-border text-xs font-mono">MIT License</span>
+        </div>
+      </div>
+    </footer>
   </div>
 </template>
 
@@ -192,6 +206,7 @@ const copied = ref('')
 const toc = [
   { id: 'architecture', title: 'Architecture Overview' },
   { id: 'installation', title: 'Installation' },
+  { id: 'limits', title: 'Project Limits' },
   { id: 'usage', title: 'Basic Usage' },
   { id: 'states', title: 'Project States' },
   { id: 'frameworks', title: 'Framework Examples' },
@@ -203,7 +218,6 @@ const basicUsage = `import DeadFuse from "dead-fuse";
 
 DeadFuse.activate({
   projectId: "YOUR_PROJECT_KEY",
-  master: "wss://your-dashboard.com/fuse",
   token: "YOUR_PUBLIC_TOKEN",
   fallbackMode: "readonly",
 

@@ -1,5 +1,6 @@
 import { requireAuth } from "~/server/utils/auth";
 import { useSupabaseAdmin } from "~/server/utils/supabase";
+import { hasDeletedAtColumn } from "../utils";
 
 // Track active WebSocket connections per project (optional, can be used for analytics)
 export const projectSockets = new Map<string, Set<string>>();
@@ -24,12 +25,19 @@ export default defineEventHandler(async (event) => {
   }
 
   // Verify ownership first
-  const { data: existing, error: fetchErr } = await sb
+  const hideDeleted = await hasDeletedAtColumn();
+
+  let ownershipQuery = sb
     .from("projects")
     .select("id, project_key")
     .eq("id", id)
-    .eq("user_id", user.id)
-    .single();
+    .eq("user_id", user.id);
+
+  if (hideDeleted) {
+    ownershipQuery = ownershipQuery.is("deleted_at", null);
+  }
+
+  const { data: existing, error: fetchErr } = await ownershipQuery.single();
 
   if (fetchErr || !existing) {
     throw createError({ statusCode: 404, statusMessage: "Project not found" });

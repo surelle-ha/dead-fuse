@@ -15,8 +15,8 @@ export interface DeadFuseConfig {
   /**
    * URL of the DeadFuse dashboard server.
    * e.g. "https://your-dashboard.vercel.app"
-   * The SDK fetches Supabase credentials from `<master>/api/config` automatically.
-   * Required unless you supply supabaseUrl + supabaseAnonKey directly.
+   * The SDK fetches configuration from `<master>/api/config` automatically.
+   * Optional: provide this OR both (supabaseUrl + supabaseAnonKey).
    */
   master?: string;
 

@@ -21,8 +21,9 @@
       </div>
     </nav>
 
-    <main v-if="project" class="max-w-4xl mx-auto px-6 py-10 space-y-6 animate-slide-up">
-      <!-- Project header -->
+    <main v-if="project" class="max-w-6xl mx-auto px-6 py-10 animate-slide-up grid gap-8 lg:grid-cols-[minmax(0,1fr)_360px]">
+      <div class="space-y-6">
+        <!-- Project header -->
       <div class="flex items-start justify-between">
         <div>
           <h1 class="text-2xl font-bold text-fuse-text">{{ project.name }}</h1>
@@ -68,6 +69,30 @@
         </div>
       </div>
 
+      <!-- Project Metadata -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div v-if="project.client_name" class="stat-card">
+          <span class="stat-label">Client</span>
+          <span class="stat-value">{{ project.client_name }}</span>
+        </div>
+        <div v-if="project.target_completion" class="stat-card">
+          <span class="stat-label">Target Completion</span>
+          <span class="stat-value">{{ formatDate(project.target_completion) }}</span>
+        </div>
+        <div v-if="project.budget" class="stat-card">
+          <span class="stat-label">Budget</span>
+          <span class="stat-value">{{ project.budget }}</span>
+        </div>
+        <div v-if="project.priority" class="stat-card">
+          <span class="stat-label">Priority</span>
+          <span class="stat-value capitalize">{{ project.priority }}</span>
+        </div>
+      </div>
+      <div v-if="project.description" class="panel">
+        <h2 class="panel-title">Description</h2>
+        <p class="text-fuse-dim text-sm">{{ project.description }}</p>
+      </div>
+
       <!-- State controls -->
       <div class="panel">
         <h2 class="panel-title">State Control</h2>
@@ -99,39 +124,126 @@
         </div>
       </div>
 
-      <!-- Integration tokens -->
+      <!-- ── Internal Tester ──────────────────────────────────────────── -->
       <div class="panel">
-        <h2 class="panel-title">Integration</h2>
-        <div class="space-y-4">
-          <div>
-            <label class="field-label">Project ID (projectId)</label>
-            <div class="token-row">
-              <code class="text-fuse-text text-xs flex-1 truncate">{{ project.project_key }}</code>
-              <button @click="copy(project.project_key, 'key')" class="copy-btn">
-                {{ copied === 'key' ? '✓ Copied' : 'Copy' }}
-              </button>
-            </div>
+        <div class="flex items-center justify-between mb-1">
+          <h2 class="panel-title mb-0">Internal Tester</h2>
+          <span class="text-xs font-mono px-2 py-0.5 rounded-full border"
+            :class="tester.activated
+              ? 'text-fuse-green border-fuse-green/30 bg-fuse-green/10'
+              : 'text-fuse-dim border-fuse-border bg-fuse-zinc'">
+            {{ tester.activated ? 'SDK Active' : 'SDK Inactive' }}
+          </span>
+        </div>
+        <p class="text-fuse-dim text-xs mb-4">
+          Simulate a connected client directly in this browser tab. The SDK will subscribe to your project and react to state changes instantly.
+        </p>
+
+        <!-- Activate / Deactivate -->
+        <div class="flex gap-3 mb-5">
+          <button
+            @click="testerActivate"
+            :disabled="tester.activated || tester.loading"
+            class="btn-tester-activate flex-1"
+          >
+            {{ tester.loading ? 'Connecting…' : 'Activate SDK' }}
+          </button>
+          <button
+            @click="testerDeactivate"
+            :disabled="!tester.activated"
+            class="btn-secondary flex-1"
+          >
+            Deactivate SDK
+          </button>
+        </div>
+
+        <!-- Live state display -->
+        <div class="grid grid-cols-2 gap-3 mb-4">
+          <div class="tester-stat">
+            <span class="tester-stat-label">SDK State</span>
+            <span class="font-mono font-bold text-sm" :class="testerStateColor">
+              {{ tester.state ?? '—' }}
+            </span>
           </div>
-          <div>
-            <label class="field-label">Public Token (token)</label>
-            <div class="token-row">
-              <code class="text-fuse-text text-xs flex-1 truncate">{{ project.public_token }}</code>
-              <button @click="copy(project.public_token, 'token')" class="copy-btn">
-                {{ copied === 'token' ? '✓ Copied' : 'Copy' }}
-              </button>
-            </div>
+          <div class="tester-stat">
+            <span class="tester-stat-label">Last Message</span>
+            <span class="font-mono text-xs text-fuse-dim truncate">{{ tester.lastMessage || '—' }}</span>
           </div>
-          <div>
-            <label class="field-label">Usage Snippet</label>
-            <div class="bg-fuse-zinc border border-fuse-border rounded-lg p-4 relative">
-              <button @click="copy(snippet, 'snippet')" class="copy-btn absolute top-3 right-3">
-                {{ copied === 'snippet' ? '✓ Copied' : 'Copy' }}
-              </button>
-              <pre class="text-xs text-fuse-dim overflow-x-auto whitespace-pre pr-16">{{ snippet }}</pre>
+        </div>
+
+        <!-- Event log -->
+        <div>
+          <div class="flex items-center justify-between mb-1.5">
+            <span class="text-xs font-mono text-fuse-dim uppercase tracking-widest">Event Log</span>
+            <button @click="tester.logs = []" class="text-xs text-fuse-dim hover:text-fuse-text font-mono transition-colors">Clear</button>
+          </div>
+          <div class="tester-log-box" ref="logBox">
+            <div v-if="tester.logs.length === 0" class="text-fuse-muted text-xs font-mono py-2 text-center">
+              No events yet — activate the SDK to start.
+            </div>
+            <div
+              v-for="(entry, i) in tester.logs"
+              :key="i"
+              class="tester-log-row text-fuse-dim"
+            >
+              <span class="opacity-50 flex-shrink-0">{{ entry.time }}</span>
+              <span class="font-bold uppercase w-24 flex-shrink-0">[{{ entry.type }}]</span>
+              <span class="truncate">{{ entry.msg }}</span>
             </div>
           </div>
         </div>
       </div>
+      <!-- ── /Internal Tester ─────────────────────────────────────────── -->
+      </div>
+
+      <aside class="space-y-6">
+        <div class="panel">
+          <h2 class="panel-title">Integration</h2>
+          <div class="space-y-4">
+            <div>
+              <label class="field-label">Project ID (projectId)</label>
+              <div class="token-row">
+                <code class="text-fuse-text text-xs flex-1 truncate">{{ project.project_key }}</code>
+                <button @click="copy(project.project_key, 'key')" class="copy-btn">
+                  {{ copied === 'key' ? 'Copied' : 'Copy' }}
+                </button>
+              </div>
+            </div>
+            <div>
+              <label class="field-label">Public Token (token)</label>
+              <div class="token-row">
+                <code class="text-fuse-text text-xs flex-1 truncate">{{ project.public_token }}</code>
+                <button @click="copy(project.public_token, 'token')" class="copy-btn">
+                  {{ copied === 'token' ? 'Copied' : 'Copy' }}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <h2 class="panel-title">Usage Snippet</h2>
+          <p class="text-fuse-dim text-xs mb-3">
+            Copy the minimal SDK integration snippet and paste it into your client application.
+          </p>
+          <div class="bg-fuse-zinc border border-fuse-border rounded-lg p-4 relative">
+            <button @click="copy(snippet, 'snippet')" class="copy-btn absolute top-3 right-3">
+              {{ copied === 'snippet' ? 'Copied' : 'Copy' }}
+            </button>
+            <pre class="text-xs text-fuse-dim overflow-x-auto whitespace-pre pr-16">{{ snippet }}</pre>
+          </div>
+        </div>
+
+        <div class="panel border-red-500/20 bg-red-500/5">
+          <h2 class="panel-title text-fuse-red">Danger Zone</h2>
+          <p class="text-fuse-dim text-xs mb-4">
+            Deleting a project will soft delete it and free up a project slot. Only do this if you no longer need its current configuration.
+          </p>
+          <button @click="showDeleteConfirm = true" class="bg-fuse-red hover:bg-fuse-red/80 text-white px-4 py-2 rounded-lg font-medium transition-colors w-full">
+            Delete Project
+          </button>
+        </div>
+      </aside>
     </main>
 
     <div v-else-if="notFound" class="flex items-center justify-center min-h-screen">
@@ -140,6 +252,31 @@
         <button @click="navigateTo('/projects')" class="btn-primary">Back to Projects</button>
       </div>
     </div>
+
+    <!-- Delete confirmation modal -->
+    <Teleport to="body">
+      <div v-if="showDeleteConfirm"
+        class="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-50 p-4"
+        @click.self="showDeleteConfirm = false">
+        <div class="glass-modal w-full max-w-md animate-slide-up">
+          <div class="p-6 border-b border-white/[0.07]">
+            <h2 class="text-lg font-bold text-fuse-red">Delete Project</h2>
+            <p class="text-fuse-dim text-xs mt-1">This action cannot be undone.</p>
+          </div>
+          <div class="p-6 space-y-4">
+            <p class="text-fuse-dim text-sm">
+              Are you sure you want to delete <strong>{{ project?.name }}</strong>? This will soft delete the project and free up a slot for creating new projects.
+            </p>
+            <div class="flex gap-3 pt-1">
+              <button @click="showDeleteConfirm = false" class="btn-ghost flex-1">Cancel</button>
+              <button @click="deleteProject" :disabled="deleteLoading" class="bg-fuse-red hover:bg-fuse-red/80 disabled:opacity-50 disabled:cursor-not-allowed text-white px-4 py-2 rounded-lg font-medium transition-colors flex-1">
+                {{ deleteLoading ? 'Deleting…' : 'Delete Project' }}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </Teleport>
 
     <!-- Toast -->
     <div v-if="statusMsg" class="fixed bottom-6 right-6 bg-fuse-zinc border px-4 py-2 rounded-lg text-sm font-mono transition-all z-50"
@@ -150,6 +287,8 @@
 </template>
 
 <script setup lang="ts">
+import DeadFuse from 'dead-fuse'
+
 definePageMeta({ middleware: 'auth' })
 
 const route = useRoute()
@@ -166,9 +305,133 @@ const copied = ref('')
 const wsConnected = ref(false)
 const connectedClients = ref(0)
 const statusMsg = ref<{ text: string; type: 'success' | 'error' } | null>(null)
+const logBox = ref<HTMLElement | null>(null)
+const showDeleteConfirm = ref(false)
+const deleteLoading = ref(false)
 
 let statusTimer: ReturnType<typeof setTimeout> | null = null
 let pollTimer: ReturnType<typeof setInterval> | null = null
+
+// ── Tester state ────────────────────────────────────────────────────────────
+const tester = reactive<{
+  activated: boolean
+  loading: boolean
+  state: string | null
+  lastMessage: string
+  logs: { time: string; type: string; msg: string }[]
+}>({
+  activated: false,
+  loading: false,
+  state: null,
+  lastMessage: '',
+  logs: [],
+})
+
+function testerLog(type: string, msg: string) {
+  const now = new Date()
+  const time = now.toLocaleTimeString('en-GB', { hour12: false })
+  tester.logs.push({ time, type, msg })
+  nextTick(() => {
+    if (logBox.value) logBox.value.scrollTop = logBox.value.scrollHeight
+  })
+}
+
+function testerActivate() {
+  if (!project.value) return
+  tester.loading = true
+  try {
+    // Set up listeners before activation to catch initial state
+    const stateListeners = {
+      onActive: () => {
+        tester.state = 'ACTIVE'
+        testerLog('active', 'SDK received ACTIVE state — full access granted.')
+      },
+      onWarning: (msg: string) => {
+        tester.state = 'WARNING'
+        tester.lastMessage = msg
+        testerLog('warning', `Warning received: ${msg}`)
+      },
+      onReadonly: () => {
+        tester.state = 'READONLY'
+        testerLog('readonly', 'Read-only mode — POST/PUT/PATCH/DELETE are now blocked.')
+      },
+      onLimited: () => {
+        tester.state = 'LIMITED'
+        testerLog('limited', 'Limited mode — custom partial restrictions active.')
+      },
+      onLocked: (msg: string) => {
+        tester.state = 'LOCKED'
+        tester.lastMessage = msg
+        testerLog('locked', `Locked: ${msg}`)
+      },
+      onExpired: () => {
+        tester.state = 'EXPIRED'
+        testerLog('expired', 'Contract expired.')
+      },
+      onSleep: () => {
+        tester.state = 'SLEEP'
+        testerLog('sleep', 'App paused (SLEEP).')
+      },
+      onSelfDestruct: () => {
+        tester.state = 'SELF_DESTRUCT'
+        testerLog('self_destruct', 'SELF_DESTRUCT handler triggered.')
+      },
+      onDisconnect: () => {
+        testerLog('disconnect', 'Disconnected from Realtime channel — applying fallback.')
+      },
+      onReconnect: () => {
+        testerLog('info', 'Reconnected to Realtime channel.')
+      },
+    }
+    
+    DeadFuse.activate({
+      projectId: project.value.project_key,
+      token: project.value.public_token,
+      fallbackMode: 'readonly',
+      ...stateListeners,
+    })
+    
+    tester.activated = true
+    wsConnected.value = true
+    connectedClients.value = 1
+    testerLog('info', `SDK activated for project "${project.value.project_key}".`)
+  } catch (err: any) {
+    testerLog('error', err?.message ?? 'Activation failed.')
+  } finally {
+    tester.loading = false
+  }
+}
+
+function testerDeactivate() {
+  DeadFuse.deactivate()
+  tester.activated = false
+  tester.state = null
+  tester.lastMessage = ''
+  wsConnected.value = false
+  connectedClients.value = 0
+  testerLog('info', 'SDK deactivated.')
+}
+
+const testerStateColor = computed(() => {
+  const map: Record<string, string> = {
+    ACTIVE: 'text-fuse-green',
+    WARNING: 'text-fuse-yellow',
+    READONLY: 'text-fuse-blue',
+    LIMITED: 'text-fuse-orange',
+    LOCKED: 'text-fuse-red',
+    EXPIRED: 'text-fuse-red',
+    SLEEP: 'text-fuse-dim',
+    SELF_DESTRUCT: 'text-fuse-purple',
+  }
+  return tester.state ? (map[tester.state] ?? 'text-fuse-text') : 'text-fuse-dim'
+})
+
+// cleanup on leave
+onUnmounted(() => {
+  if (tester.activated) DeadFuse.deactivate()
+  if (pollTimer) clearInterval(pollTimer)
+})
+// ── /Tester ──────────────────────────────────────────────────────────────────
 
 onMounted(async () => {
   try {
@@ -185,37 +448,31 @@ onMounted(async () => {
   pollTimer = setInterval(pollClientStatus, 5000)
 })
 
-onUnmounted(() => {
-  if (pollTimer) clearInterval(pollTimer)
-})
-
 async function pollClientStatus() {
-  if (!project.value) return
+  if (!project.value || tester.activated) return
   try {
     const res = await $fetch<{ connected: number }>(`/api/projects/${id}/clients`)
     connectedClients.value = res.connected
     wsConnected.value = res.connected > 0
   } catch {
-    // endpoint may not exist, graceful fallback
     wsConnected.value = false
     connectedClients.value = 0
   }
 }
 
+// ─── Snippet — SDK auto-configures Supabase via dashboard config endpoint ───
 const snippet = computed(() => {
   if (!project.value) return ''
-  const appUrl = window.location.origin
   return `import DeadFuse from "dead-fuse";
 
 DeadFuse.activate({
   projectId: "${project.value.project_key}",
-  master: "${appUrl.replace('http', 'ws')}/fuse",
   token: "${project.value.public_token}",
   fallbackMode: "readonly",
-  onActive: () => console.log("Active"),
-  onWarning: (msg) => alert(msg),
+  onActive:   () => console.log("Active"),
+  onWarning:  (msg) => alert(msg),
   onReadonly: () => console.warn("Read-only mode"),
-  onLocked: (msg) => { document.body.innerHTML = msg; },
+  onLocked:   (msg) => { console.error(msg); },
 });`
 })
 
@@ -296,6 +553,20 @@ function showStatus(text: string, type: 'success' | 'error') {
   if (statusTimer) clearTimeout(statusTimer)
   statusTimer = setTimeout(() => { statusMsg.value = null }, 3000)
 }
+
+async function deleteProject() {
+  deleteLoading.value = true
+  try {
+    await $fetch(`/api/projects/${id}`, { method: 'DELETE' })
+    showStatus('Project deleted successfully', 'success')
+    setTimeout(() => navigateTo('/projects'), 1000)
+  } catch (err: any) {
+    showStatus(err?.data?.statusMessage || 'Failed to delete project', 'error')
+  } finally {
+    deleteLoading.value = false
+    showDeleteConfirm.value = false
+  }
+}
 </script>
 
 <style scoped>
@@ -357,11 +628,29 @@ function showStatus(text: string, type: 'success' | 'error') {
   @apply bg-fuse-zinc border border-fuse-border hover:border-fuse-muted text-fuse-text text-sm px-4 py-2.5
   rounded-md transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed;
 }
+.btn-tester-activate {
+  @apply bg-fuse-green/20 hover:bg-fuse-green/30 border border-fuse-green/40 text-fuse-green font-bold text-sm
+  px-4 py-2.5 rounded-md transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed;
+}
 .token-row {
   @apply flex items-center gap-3 bg-fuse-zinc border border-fuse-border rounded-lg px-3 py-2 mt-1;
 }
 .copy-btn {
   @apply text-xs text-fuse-dim hover:text-fuse-text font-mono border border-fuse-border rounded px-2 py-0.5
   transition-colors whitespace-nowrap;
+}
+
+/* Tester */
+.tester-stat {
+  @apply bg-black/30 border border-white/[0.06] rounded-lg px-3 py-2.5 flex flex-col gap-1;
+}
+.tester-stat-label {
+  @apply text-xs font-mono text-fuse-dim uppercase tracking-widest;
+}
+.tester-log-box {
+  @apply bg-black/40 border border-white/[0.06] rounded-lg p-3 h-44 overflow-y-auto font-mono text-xs;
+}
+.tester-log-row {
+  @apply flex items-start gap-3 py-0.5 border-b border-white/[0.04] last:border-0;
 }
 </style>

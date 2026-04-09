@@ -10,8 +10,10 @@
         <div class="w-7 h-7 bg-fuse-red rounded-sm flex items-center justify-center shadow-lg shadow-fuse-red/30">
           <span class="text-white font-mono text-xs font-bold">DF</span>
         </div>
-        <span class="font-bold text-fuse-text">DeadFuse</span>
-        <span class="hidden sm:inline text-fuse-border text-xs font-mono ml-1">License Control</span>
+        <div>
+          <span class="font-bold text-fuse-text">Projects</span>
+          <span class="hidden sm:block text-fuse-border text-xs font-mono">License Control</span>
+        </div>
       </div>
       <div class="flex items-center gap-4">
         <NuxtLink to="/docs" class="text-fuse-dim hover:text-fuse-text text-sm transition-colors font-mono hidden sm:inline">
@@ -24,12 +26,26 @@
 
     <main class="max-w-5xl mx-auto px-6 py-10 relative z-10">
       <!-- Header -->
-      <div class="flex items-center justify-between mb-8">
+      <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between mb-8">
         <div>
           <h1 class="text-2xl font-bold text-fuse-text">Projects</h1>
           <p class="text-fuse-dim text-sm mt-1">Manage and control your deployed applications</p>
         </div>
-        <button @click="showCreate = true" class="btn-primary">+ New Project</button>
+        <button
+          @click="showCreate = true"
+          :disabled="limitReached"
+          :class="limitReached ? 'btn-secondary opacity-60 cursor-not-allowed' : 'btn-primary'"
+        >
+          + New Project
+        </button>
+      </div>
+      <div v-if="limitReached" class="upgrade-banner mb-8">
+        <div class="flex items-center justify-between">
+          <p>
+            You've reached the project limit of <strong>{{ projectLimit }}</strong>. Upgrade your plan to create more projects.
+          </p>
+          <a href="#upgrade" class="btn-upgrade flex-shrink-0">Upgrade Now</a>
+        </div>
       </div>
 
       <!-- Stats bar -->
@@ -81,14 +97,39 @@
                 @keydown.enter="createProject" />
             </div>
             <div class="field-group">
+              <label class="field-label">Client Name</label>
+              <input v-model="newProject.clientName" type="text" class="field-input" placeholder="e.g. Acme Corporation" />
+            </div>
+            <div class="field-group">
+              <label class="field-label">Target Completion</label>
+              <input v-model="newProject.targetCompletion" type="date" class="field-input" />
+            </div>
+            <div class="field-group">
+              <label class="field-label">Description</label>
+              <textarea v-model="newProject.description" class="field-input min-h-[80px]" placeholder="Project description and requirements..." />
+            </div>
+            <div class="field-group">
+              <label class="field-label">Budget</label>
+              <input v-model="newProject.budget" type="text" class="field-input" placeholder="e.g. $50,000" />
+            </div>
+            <div class="field-group">
+              <label class="field-label">Priority</label>
+              <select v-model="newProject.priority" class="field-input">
+                <option value="low">Low</option>
+                <option value="medium">Medium</option>
+                <option value="high">High</option>
+                <option value="urgent">Urgent</option>
+              </select>
+            </div>
+            <div class="field-group">
               <label class="field-label">Grace Period (days)</label>
-              <input v-model.number="newProject.gracePeriod" type="number" min="0" max="365" class="field-input" />
+              <input v-model.number="newProject.gracePeriod" type="number" min="0" max="365" class="field-input" :disabled="limitReached" />
               <p class="text-fuse-dim text-xs mt-1">Days before restrictions enforce after a state change.</p>
             </div>
             <div v-if="createError" class="error-box">{{ createError }}</div>
             <div class="flex gap-3 pt-1">
               <button @click="showCreate = false" class="btn-ghost flex-1">Cancel</button>
-              <button @click="createProject" :disabled="createLoading" class="btn-primary flex-1">
+              <button @click="createProject" :disabled="createLoading || limitReached" class="btn-primary flex-1">
                 {{ createLoading ? 'Creating…' : 'Create Project' }}
               </button>
             </div>
@@ -112,8 +153,19 @@ const showCreate = ref(false)
 const createLoading = ref(false)
 const createError = ref('')
 const userEmail = ref('')
+const projectLimit = 2
 
-const newProject = reactive({ name: '', gracePeriod: 3 })
+const newProject = reactive({ 
+  name: '', 
+  gracePeriod: 3,
+  clientName: '',
+  targetCompletion: '',
+  description: '',
+  budget: '',
+  priority: 'medium'
+})
+
+const limitReached = computed(() => projects.value.length >= projectLimit)
 
 const projectStats = computed(() => {
   const counts: Record<string, number> = {}
@@ -149,6 +201,11 @@ async function loadProjects() {
 }
 
 async function createProject() {
+  if (limitReached.value) {
+    createError.value = 'Project limit reached. Upgrade to create more projects.'
+    return
+  }
+
   if (!newProject.name.trim()) {
     createError.value = 'Project name is required'
     return
@@ -158,12 +215,25 @@ async function createProject() {
   try {
     const project = await $fetch('/api/projects', {
       method: 'POST',
-      body: { name: newProject.name, gracePeriod: newProject.gracePeriod },
+      body: { 
+        name: newProject.name, 
+        gracePeriod: newProject.gracePeriod,
+        clientName: newProject.clientName,
+        targetCompletion: newProject.targetCompletion,
+        description: newProject.description,
+        budget: newProject.budget,
+        priority: newProject.priority
+      },
     })
     projects.value.unshift(project)
     showCreate.value = false
     newProject.name = ''
     newProject.gracePeriod = 3
+    newProject.clientName = ''
+    newProject.targetCompletion = ''
+    newProject.description = ''
+    newProject.budget = ''
+    newProject.priority = 'medium'
   } catch (err: any) {
     createError.value = err?.data?.statusMessage || 'Failed to create project'
   } finally {
@@ -194,6 +264,13 @@ async function logout() {
   @apply flex items-center gap-1 bg-white/[0.02] backdrop-blur-sm border border-white/[0.06]
   rounded-xl px-4 py-3 overflow-x-auto;
 }
+.upgrade-banner {
+  @apply bg-fuse-red/10 border border-fuse-red/20 rounded-xl p-4 text-sm text-fuse-red;
+}
+.btn-upgrade {
+  @apply bg-fuse-red text-white font-bold text-xs px-4 py-2 rounded-md hover:bg-red-500 transition-colors whitespace-nowrap;
+}
+
 .stat-item {
   @apply flex items-center gap-2 px-4 py-1 border-r border-white/[0.06] last:border-0 flex-shrink-0;
 }

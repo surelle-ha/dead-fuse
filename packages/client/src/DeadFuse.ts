@@ -15,15 +15,32 @@ const DeadFuse: DeadFuseInstance = {
     }
 
     if (!config.projectId) throw new Error("[DeadFuse] projectId is required.");
-    if (!config.master) throw new Error("[DeadFuse] master URL is required.");
     if (!config.token) throw new Error("[DeadFuse] token is required.");
 
-    activeConfig = config;
-    activeConnection = new DeadFuseConnection(config);
+    const hasExplicitSupabase = Boolean(config.supabaseUrl && config.supabaseAnonKey);
+    const resolvedConfig = { ...config };
+
+    if (!resolvedConfig.master && !hasExplicitSupabase) {
+      if (typeof window !== "undefined") {
+        resolvedConfig.master = window.location.origin;
+      }
+    }
+
+    if (!resolvedConfig.master && !hasExplicitSupabase) {
+      throw new Error(
+        "[DeadFuse] Provide either a dashboard URL via `master` or both `supabaseUrl` + `supabaseAnonKey`."
+      );
+    }
+
+    activeConfig = resolvedConfig;
+    activeConnection = new DeadFuseConnection(resolvedConfig);
     activeConnection.connect();
 
+    const connectMsg = resolvedConfig.master
+      ? `dashboard at ${resolvedConfig.master}`
+      : "explicit Supabase credentials";
     console.info(
-      `[DeadFuse] Activated for project "${config.projectId}". Connecting to ${config.master}...`
+      `[DeadFuse] Activated for project "${resolvedConfig.projectId}". Connecting via ${connectMsg}...`
     );
   },
 

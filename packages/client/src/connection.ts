@@ -48,17 +48,17 @@ export class DeadFuseConnection {
     let supabaseAnonKey = this.config.supabaseAnonKey;
 
     if (!supabaseUrl || !supabaseAnonKey) {
-      if (!this.config.master) {
+      const masterUrl = this.config.master ?? (typeof window !== "undefined" ? window.location.origin : undefined);
+      if (!masterUrl) {
         console.error(
-          "[DeadFuse] Provide either `master` (dashboard URL) or both " +
-          "`supabaseUrl` + `supabaseAnonKey`."
+          "[DeadFuse] Provide either `master` (dashboard URL) or both `supabaseUrl` + `supabaseAnonKey`."
         );
         this._applyFallback();
         return;
       }
 
       try {
-        const res = await fetch(`${this.config.master.replace(/\/$/, "")}/api/config`);
+        const res = await fetch(`${masterUrl.replace(/\/$/, "")}/api/config`);
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const json = await res.json() as { supabaseUrl: string; supabaseAnonKey: string };
         supabaseUrl = json.supabaseUrl;
@@ -124,6 +124,25 @@ export class DeadFuseConnection {
 
   private async _fetchInitialState(): Promise<void> {
     if (!this.supabase) return;
+
+    const tryDashboardFallback = async () => {
+      const masterUrl = this.config.master ?? (typeof window !== "undefined" ? window.location.origin : undefined);
+      if (!masterUrl) return null;
+
+      try {
+        const res = await fetch(
+          `${masterUrl.replace(/\/$/, "")}/api/projects/${this.config.projectId}/initial-state?token=${encodeURIComponent(
+            this.config.token
+          )}`
+        );
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return await res.json() as { state: string; message?: string };
+      } catch (err) {
+        console.warn("[DeadFuse] Dashboard initial-state fallback failed:", err);
+        return null;
+      }
+    };
+
     try {
       const { data, error } = await this.supabase
         .from("projects")
@@ -133,7 +152,15 @@ export class DeadFuseConnection {
         .single();
 
       if (error || !data) {
-        console.warn("[DeadFuse] Could not fetch initial state:", error?.message);
+        console.warn("[DeadFuse] Could not fetch initial state via Supabase:", error?.message);
+
+        const fallback = await tryDashboardFallback();
+        if (fallback) {
+          setCurrentState(fallback.state);
+          dispatchStateEvent(fallback.state, fallback.message ?? "", this.config);
+          return;
+        }
+
         this._applyFallback();
         return;
       }
@@ -142,6 +169,12 @@ export class DeadFuseConnection {
       dispatchStateEvent(data.state, data.message ?? "", this.config);
     } catch (err) {
       console.warn("[DeadFuse] Initial state fetch failed:", err);
+      const fallback = await tryDashboardFallback();
+      if (fallback) {
+        setCurrentState(fallback.state);
+        dispatchStateEvent(fallback.state, fallback.message ?? "", this.config);
+        return;
+      }
       this._applyFallback();
     }
   }
