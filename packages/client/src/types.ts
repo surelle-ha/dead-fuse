@@ -9,37 +9,50 @@ export type ProjectState =
   | "SELF_DESTRUCT";
 
 export interface DeadFuseConfig {
-  /** Unique project identifier */
+  /** Unique project identifier (project_key from dashboard) */
   projectId: string;
-  /** WebSocket master server URL e.g. wss://host.com/fuse */
-  master: string;
-  /** Public project token for authentication */
+
+  /**
+   * URL of the DeadFuse dashboard server.
+   * e.g. "https://your-dashboard.vercel.app"
+   * The SDK fetches Supabase credentials from `<master>/api/config` automatically.
+   * Required unless you supply supabaseUrl + supabaseAnonKey directly.
+   */
+  master?: string;
+
+  /**
+   * Public project token (public_token from dashboard).
+   * Used to authenticate the initial state fetch via PostgREST.
+   */
   token: string;
-  /** Fallback mode when server is unreachable */
+
+  /**
+   * Override the Supabase project URL.
+   * Optional — if omitted the SDK fetches this from `<master>/api/config`.
+   * Useful if you self-host Supabase or want zero extra round-trips.
+   */
+  supabaseUrl?: string;
+
+  /**
+   * Override the Supabase anon/public key.
+   * Optional — pair with supabaseUrl to bypass the /api/config fetch entirely.
+   */
+  supabaseAnonKey?: string;
+
+  /** State to apply immediately when the Realtime channel cannot connect */
   fallbackMode?: ProjectState;
-  /** Grace period in days before enforcement */
+  /** Grace period in days (informational — enforced by dashboard) */
   gracePeriod?: number;
-  /** Heartbeat interval in milliseconds (default: 30000) */
-  heartbeatInterval?: number;
-  /** Called when project state becomes ACTIVE */
+
   onActive?: () => void;
-  /** Called when project state becomes WARNING */
   onWarning?: (message: string) => void;
-  /** Called when project state becomes READONLY */
   onReadonly?: () => void;
-  /** Called when project state becomes LIMITED */
   onLimited?: () => void;
-  /** Called when project state becomes LOCKED */
   onLocked?: (message: string) => void;
-  /** Called when project state becomes EXPIRED */
   onExpired?: () => void;
-  /** Called when project state becomes SLEEP */
   onSleep?: () => void;
-  /** Called when project state becomes SELF_DESTRUCT */
   onSelfDestruct?: () => void;
-  /** Called when WebSocket disconnects */
   onDisconnect?: () => void;
-  /** Called when WebSocket reconnects */
   onReconnect?: () => void;
 }
 

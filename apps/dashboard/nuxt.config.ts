@@ -4,8 +4,8 @@ export default defineNuxtConfig({
   modules: ["@nuxtjs/tailwindcss"],
 
   runtimeConfig: {
-    databaseUrl: process.env.DATABASE_URL || "",
     jwtSecret: process.env.JWT_SECRET || "",
+    supabaseServiceKey: process.env.SUPABASE_SERVICE_KEY || "",
     public: {
       appUrl: process.env.APP_URL || "http://localhost:3000",
       wsPath: process.env.WS_PATH || "/fuse",
@@ -13,9 +13,10 @@ export default defineNuxtConfig({
   },
 
   nitro: {
-    experimental: {
-      websocket: true,
-    },
+    // WebSocket disabled - using Supabase Realtime instead
+    // experimental: {
+    //   websocket: true,
+    // },
   },
 
   typescript: {

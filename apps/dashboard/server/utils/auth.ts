@@ -2,7 +2,7 @@ import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 
 export interface JWTPayload {
-  userId: string;
+  id: string;
   email: string;
 }
 

@@ -1,18 +1,21 @@
-import { queryOne } from "~/server/utils/db";
 import { requireAuth } from "~/server/utils/auth";
-import { projectSockets } from "../[id]/state.post";
+import { useSupabaseAdmin } from "~/server/utils/supabase";
+import { projectSockets } from "./state.post";
 
 export default defineEventHandler(async (event) => {
   const auth = requireAuth(event);
   const id = getRouterParam(event, "id");
+  const sb = useSupabaseAdmin();
 
   // Verify ownership
-  const project = await queryOne(
-    "SELECT project_key FROM projects WHERE id = $1 AND user_id = $2",
-    [id, auth.userId]
-  );
+  const { data: project, error } = await sb
+    .from("projects")
+    .select("project_key")
+    .eq("id", id)
+    .eq("user_id", auth.id)
+    .single();
 
-  if (!project) {
+  if (error || !project) {
     throw createError({ statusCode: 404, statusMessage: "Project not found" });
   }
 
