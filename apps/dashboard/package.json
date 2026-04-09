@@ -4,7 +4,8 @@
   "type": "module",
   "scripts": {
     "dev": "nuxt dev",
-    "build": "pnpm --filter client build && nuxt build",
+    "build": "nuxt build",
+    "build:prod": "nuxt build",
     "preview": "nuxt preview",
     "migrate": "node server/migrate.cjs",
     "typecheck": "nuxt typecheck"

@@ -6,6 +6,7 @@
     "build": "pnpm --filter client build && pnpm --filter dashboard build",
     "build:client": "pnpm --filter client build",
     "build:dashboard": "pnpm --filter dashboard build",
+    "build:prod": "pnpm build:client && pnpm --filter dashboard build:prod",
     "migrate": "pnpm --filter dashboard migrate",
     "lint": "pnpm -r lint",
     "typecheck": "pnpm -r typecheck"
