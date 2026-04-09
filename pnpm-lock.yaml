@@ -20,6 +20,9 @@ importers:
       bcryptjs:
         specifier: ^2.4.3
         version: 2.4.3
+      dead-fuse:
+        specifier: workspace:*
+        version: link:../../packages/client
       jsonwebtoken:
         specifier: ^9.0.2
         version: 9.0.3
