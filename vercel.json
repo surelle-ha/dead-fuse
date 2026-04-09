@@ -1,0 +1,5 @@
+{
+  "buildCommand": "pnpm --filter client build && pnpm --filter dashboard build",
+  "outputDirectory": "apps/dashboard/.output",
+  "framework": "nuxt"
+}
