@@ -1,56 +1,58 @@
 <template>
-  <div class="min-h-screen flex flex-col bg-fuse-black">
-    <main class="flex-1 max-w-4xl mx-auto px-6 py-12 animate-slide-up">
-      <!-- Header -->
-      <div class="mb-12">
-        <div class="inline-flex items-center gap-2 bg-fuse-red/10 border border-fuse-red/20 text-fuse-red text-xs font-mono px-3 py-1 rounded-full mb-4">
+  <div class="min-h-screen bg-fuse-black">
+    <main class="flex-1 max-w-4xl mx-auto px-6 py-8 animate-slide-up">
+
+      <!-- Intro -->
+      <div class="mb-10">
+        <div class="inline-flex items-center gap-2 border border-fuse-red/20 bg-fuse-red/[0.06] text-fuse-red text-[9px] font-mono uppercase tracking-widest px-2.5 py-1 rounded-full mb-3"
+          style="backdrop-filter: blur(8px);">
           Documentation
         </div>
-        <h1 class="text-4xl font-bold text-fuse-text mb-3">How DeadFuse Works</h1>
-        <p class="text-fuse-dim text-base leading-relaxed max-w-2xl">
-          DeadFuse lets you remotely control access to your deployed client applications in real time — no redeployment needed. When a client delays payment or a contract ends, switch the state from this dashboard and their app responds instantly.
+        <h1 class="text-2xl font-bold text-fuse-text mb-2">How DeadFuse works</h1>
+        <p class="text-fuse-dim text-sm leading-relaxed max-w-2xl">
+          Remotely control access to deployed client applications in real time — no redeployment needed. Switch state from this dashboard and the client app responds instantly.
         </p>
       </div>
 
       <!-- TOC -->
-      <div class="glass-panel mb-10 p-5">
-        <h2 class="text-xs font-mono text-fuse-dim uppercase tracking-widest mb-3">On this page</h2>
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-1">
+      <div class="glass-panel mb-10 p-4">
+        <h2 class="text-[9px] font-mono text-fuse-muted uppercase tracking-widest mb-2.5">On this page</h2>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-0.5">
           <a v-for="section in toc" :key="section.id" :href="`#${section.id}`"
-            class="text-sm text-fuse-dim hover:text-fuse-text transition-colors py-1 flex items-center gap-2">
-            <span class="text-fuse-red text-xs">→</span>
+            class="text-xs text-fuse-dim hover:text-fuse-text transition-colors py-1 flex items-center gap-1.5">
+            <span class="text-fuse-red text-[9px]">→</span>
             {{ section.title }}
           </a>
         </div>
       </div>
 
       <!-- Sections -->
-      <div class="space-y-14">
+      <div class="space-y-12">
 
         <!-- Architecture -->
         <section id="architecture">
-          <h2 class="doc-heading">Architecture Overview</h2>
-          <p class="doc-body">DeadFuse is a two-part system: this dashboard (server) and the <code class="code-inline">dead-fuse</code> npm package (client SDK). The client SDK opens a WebSocket connection to your dashboard on startup and listens for state changes. When you toggle a project state here, it broadcasts instantly to every connected client.</p>
-          <div class="architecture-diagram mt-6">
-            <div class="arch-box arch-box--server">
-              <div class="arch-label">This Dashboard</div>
-              <div class="arch-items">
-                <span>Admin UI</span>
-                <span>REST API</span>
-                <span>WebSocket Server</span>
-                <span>PostgreSQL</span>
+          <h2 class="doc-heading">Architecture overview</h2>
+          <p class="doc-body">DeadFuse is a two-part system: this dashboard (server) and the <code class="code-inline">dead-fuse</code> npm package (client SDK). The SDK opens a Supabase Realtime channel on startup and listens for state broadcasts. When you toggle a project state here, it broadcasts instantly to every connected client.</p>
+          <div class="arch-diagram mt-5">
+            <div class="arch-box" style="border-color: rgba(255,51,51,0.2);">
+              <div class="text-[9px] font-mono font-bold uppercase tracking-widest text-fuse-red mb-2">Dashboard</div>
+              <div class="space-y-0.5 text-[10px] text-fuse-muted font-mono">
+                <div>Admin UI</div>
+                <div>REST API</div>
+                <div>Supabase Realtime</div>
+                <div>PostgreSQL</div>
               </div>
             </div>
-            <div class="arch-arrow">
-              <div class="arch-arrow-line" />
-              <div class="arch-arrow-label">wss:///fuse<br><span class="text-fuse-dim">real-time</span></div>
+            <div class="flex flex-col items-center gap-1 flex-shrink-0 self-center">
+              <div class="w-10 h-px bg-gradient-to-r from-fuse-red/40 to-fuse-blue/40" />
+              <span class="text-[8px] font-mono text-fuse-muted text-center leading-relaxed">Realtime<br>broadcast</span>
             </div>
-            <div class="arch-box arch-box--client">
-              <div class="arch-label">Client App</div>
-              <div class="arch-items">
-                <span>dead-fuse SDK</span>
-                <span>State callbacks</span>
-                <span>HTTP interceptors</span>
+            <div class="arch-box" style="border-color: rgba(68,136,255,0.2);">
+              <div class="text-[9px] font-mono font-bold uppercase tracking-widest text-fuse-blue mb-2">Client app</div>
+              <div class="space-y-0.5 text-[10px] text-fuse-muted font-mono">
+                <div>dead-fuse SDK</div>
+                <div>State callbacks</div>
+                <div>HTTP interceptors</div>
               </div>
             </div>
           </div>
@@ -60,7 +62,7 @@
         <section id="installation">
           <h2 class="doc-heading">Installation</h2>
           <p class="doc-body">Install the SDK in the client app you want to control.</p>
-          <div class="code-block mt-4">
+          <div class="code-block mt-3">
             <div class="code-block-header">
               <span>terminal</span>
               <button @click="copy('npm install dead-fuse', 'install')" class="copy-btn">{{ copied === 'install' ? '✓' : 'Copy' }}</button>
@@ -71,21 +73,21 @@ pnpm add dead-fuse</pre>
           </div>
         </section>
 
-        <!-- Project Limits -->
+        <!-- Project limits -->
         <section id="limits">
-          <h2 class="doc-heading">Project Limits</h2>
-          <p class="doc-body">Each dashboard user can create up to <strong>2 projects</strong>. If you hit the limit, the Projects page shows an upgrade notice and prevents additional project creation until you upgrade.</p>
-          <div class="info-card mt-5">
-            <span class="info-label">Project limit</span>
-            <span class="info-value">2 projects per user</span>
+          <h2 class="doc-heading">Project limits</h2>
+          <p class="doc-body">Each account can manage up to <strong class="text-fuse-text font-medium">2 projects</strong> on the Free plan. The Projects page shows an upgrade notice when you hit the limit.</p>
+          <div class="info-card mt-4 flex items-center justify-between">
+            <span class="text-xs text-fuse-dim">Free plan limit</span>
+            <span class="text-xs font-mono text-fuse-text font-bold">2 projects</span>
           </div>
         </section>
 
-        <!-- Basic Usage -->
+        <!-- Basic usage -->
         <section id="usage">
-          <h2 class="doc-heading">Basic Usage</h2>
-          <p class="doc-body">Call <code class="code-inline">DeadFuse.activate()</code> as early as possible in your application lifecycle. Find your <strong class="text-fuse-text">Project ID</strong> and <strong class="text-fuse-text">Public Token</strong> on the project page.</p>
-          <div class="code-block mt-4">
+          <h2 class="doc-heading">Basic usage</h2>
+          <p class="doc-body">Call <code class="code-inline">DeadFuse.activate()</code> as early as possible in your app. Find your <span class="text-fuse-text">Project ID</span> and <span class="text-fuse-text">Public Token</span> on the project detail page.</p>
+          <div class="code-block mt-3">
             <div class="code-block-header">
               <span>JavaScript / TypeScript</span>
               <button @click="copy(basicUsage, 'basic')" class="copy-btn">{{ copied === 'basic' ? '✓ Copied' : 'Copy' }}</button>
@@ -94,45 +96,42 @@ pnpm add dead-fuse</pre>
           </div>
         </section>
 
-        <!-- States reference -->
+        <!-- States -->
         <section id="states">
-          <h2 class="doc-heading">Project States</h2>
-          <p class="doc-body">Each state triggers a different callback in the client SDK and may enable HTTP request interception.</p>
-          <div class="states-table mt-5">
+          <h2 class="doc-heading">Project states</h2>
+          <p class="doc-body">Each state triggers a different callback and may intercept HTTP requests automatically.</p>
+          <div class="states-table mt-4">
             <div class="states-header">
               <span>State</span>
               <span>Callback</span>
-              <span>HTTP Blocking</span>
-              <span>Use Case</span>
+              <span class="hidden sm:block">Blocks</span>
+              <span class="hidden md:block">Use case</span>
             </div>
             <div v-for="state in states" :key="state.name" class="states-row">
-              <span><code class="state-badge" :class="state.color">{{ state.name }}</code></span>
-              <code class="text-fuse-dim text-xs">{{ state.callback }}</code>
-              <span class="text-xs" :class="state.blocks ? 'text-fuse-red' : 'text-fuse-dim'">
-                {{ state.blocks ? 'POST PUT PATCH DELETE' : 'None' }}
+              <code class="font-mono font-bold text-[10px]" :class="state.color">{{ state.name }}</code>
+              <code class="text-fuse-muted text-[10px] font-mono">{{ state.callback }}</code>
+              <span class="hidden sm:block text-[10px]" :class="state.blocks ? 'text-fuse-red' : 'text-fuse-muted'">
+                {{ state.blocks ? 'POST PUT PATCH DELETE' : '—' }}
               </span>
-              <span class="text-xs text-fuse-dim">{{ state.use }}</span>
+              <span class="hidden md:block text-[10px] text-fuse-muted">{{ state.use }}</span>
             </div>
           </div>
         </section>
 
         <!-- Framework examples -->
         <section id="frameworks">
-          <h2 class="doc-heading">Framework Examples</h2>
-
-          <div class="space-y-4">
-            <div v-for="fw in frameworks" :key="fw.name" class="glass-panel overflow-hidden">
-              <button @click="fw.open = !fw.open" class="w-full flex items-center justify-between p-4 text-left">
-                <span class="font-bold text-fuse-text text-sm">{{ fw.name }}</span>
-                <span class="text-fuse-dim text-sm transition-transform duration-200" :class="fw.open ? 'rotate-180' : ''">▾</span>
+          <h2 class="doc-heading">Framework examples</h2>
+          <div class="space-y-2 mt-3">
+            <div v-for="fw in frameworks" :key="fw.name" class="glass-panel overflow-hidden p-0">
+              <button @click="fw.open = !fw.open" class="w-full flex items-center justify-between px-4 py-3 text-left">
+                <span class="text-xs font-medium text-fuse-text">{{ fw.name }}</span>
+                <span class="text-fuse-muted text-xs transition-transform duration-150" :class="fw.open ? 'rotate-180' : ''">▾</span>
               </button>
-              <div v-if="fw.open" class="border-t border-white/[0.06]">
-                <div class="code-block-inner">
-                  <button @click="copy(fw.code, fw.name)" class="copy-btn absolute top-3 right-3">
-                    {{ copied === fw.name ? '✓ Copied' : 'Copy' }}
-                  </button>
-                  <pre class="code-content pr-16">{{ fw.code }}</pre>
-                </div>
+              <div v-if="fw.open" class="border-t border-white/[0.06] relative">
+                <button @click="copy(fw.code, fw.name)" class="copy-btn absolute top-2.5 right-3">
+                  {{ copied === fw.name ? '✓ Copied' : 'Copy' }}
+                </button>
+                <pre class="code-content pr-16">{{ fw.code }}</pre>
               </div>
             </div>
           </div>
@@ -140,61 +139,41 @@ pnpm add dead-fuse</pre>
 
         <!-- Reconnection -->
         <section id="reconnection">
-          <h2 class="doc-heading">Reconnection & Fallback</h2>
-          <p class="doc-body">If the WebSocket connection drops, the SDK applies <code class="code-inline">fallbackMode</code> immediately and attempts to reconnect with exponential backoff.</p>
-          <div class="info-grid mt-5">
-            <div class="info-card">
-              <span class="info-label">Base delay</span>
-              <span class="info-value">1 second</span>
+          <h2 class="doc-heading">Reconnection & fallback</h2>
+          <p class="doc-body">If the Realtime channel drops, the SDK applies <code class="code-inline">fallbackMode</code> immediately and reconnects with exponential backoff.</p>
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-4">
+            <div class="info-card flex-col gap-0.5">
+              <span class="text-[9px] font-mono text-fuse-muted">Base delay</span>
+              <span class="text-sm font-bold font-mono text-fuse-text">1s</span>
             </div>
-            <div class="info-card">
-              <span class="info-label">Max delay</span>
-              <span class="info-value">30 seconds</span>
+            <div class="info-card flex-col gap-0.5">
+              <span class="text-[9px] font-mono text-fuse-muted">Max delay</span>
+              <span class="text-sm font-bold font-mono text-fuse-text">30s</span>
             </div>
-            <div class="info-card">
-              <span class="info-label">Max attempts</span>
-              <span class="info-value">10</span>
+            <div class="info-card flex-col gap-0.5">
+              <span class="text-[9px] font-mono text-fuse-muted">Max attempts</span>
+              <span class="text-sm font-bold font-mono text-fuse-text">10</span>
             </div>
-            <div class="info-card">
-              <span class="info-label">Formula</span>
-              <span class="info-value font-mono text-sm">min(1000 × 2ⁿ, 30000)</span>
+            <div class="info-card flex-col gap-0.5">
+              <span class="text-[9px] font-mono text-fuse-muted">Formula</span>
+              <span class="text-[10px] font-bold font-mono text-fuse-text">min(1000×2ⁿ, 30k)</span>
             </div>
           </div>
         </section>
 
         <!-- Ethics -->
         <section id="ethics">
-          <h2 class="doc-heading">Ethical Usage Guidelines</h2>
-          <div class="space-y-3 mt-4">
-            <div v-for="tip in ethics" :key="tip" class="flex items-start gap-3 text-sm text-fuse-dim">
-              <span class="text-fuse-green mt-0.5 flex-shrink-0">✓</span>
-              <span>{{ tip }}</span>
+          <h2 class="doc-heading">Ethical usage</h2>
+          <div class="space-y-2 mt-3">
+            <div v-for="tip in ethics" :key="tip" class="flex items-start gap-2.5 text-xs text-fuse-dim">
+              <span class="text-fuse-green mt-0.5 flex-shrink-0 text-[10px]">✓</span>
+              {{ tip }}
             </div>
           </div>
         </section>
 
       </div>
     </main>
-
-    <footer class="border-t border-fuse-border/40 px-6 py-8 bg-fuse-black/50">
-      <div class="max-w-4xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
-        <div class="flex items-center gap-3">
-          <div class="w-6 h-6 bg-fuse-red/80 rounded-sm flex items-center justify-center">
-            <span class="text-white font-mono text-xs font-bold leading-none">DF</span>
-          </div>
-          <span class="text-fuse-dim text-xs font-mono">DeadFuse.js — Ethical License Enforcement</span>
-        </div>
-        <div class="flex items-center gap-6">
-          <NuxtLink to="/docs" class="text-fuse-dim hover:text-fuse-text text-xs font-mono transition-colors">
-            Docs
-          </NuxtLink>
-          <a href="https://github.com" target="_blank" rel="noopener" class="text-fuse-dim hover:text-fuse-text text-xs font-mono transition-colors">
-            GitHub
-          </a>
-          <span class="text-fuse-border text-xs font-mono">MIT License</span>
-        </div>
-      </div>
-    </footer>
   </div>
 </template>
 
@@ -204,14 +183,14 @@ definePageMeta({ middleware: 'auth' })
 const copied = ref('')
 
 const toc = [
-  { id: 'architecture', title: 'Architecture Overview' },
+  { id: 'architecture', title: 'Architecture overview' },
   { id: 'installation', title: 'Installation' },
-  { id: 'limits', title: 'Project Limits' },
-  { id: 'usage', title: 'Basic Usage' },
-  { id: 'states', title: 'Project States' },
-  { id: 'frameworks', title: 'Framework Examples' },
-  { id: 'reconnection', title: 'Reconnection & Fallback' },
-  { id: 'ethics', title: 'Ethical Usage' },
+  { id: 'limits',       title: 'Project limits' },
+  { id: 'usage',        title: 'Basic usage' },
+  { id: 'states',       title: 'Project states' },
+  { id: 'frameworks',   title: 'Framework examples' },
+  { id: 'reconnection', title: 'Reconnection & fallback' },
+  { id: 'ethics',       title: 'Ethical usage' },
 ]
 
 const basicUsage = `import DeadFuse from "dead-fuse";
@@ -221,72 +200,46 @@ DeadFuse.activate({
   token: "YOUR_PUBLIC_TOKEN",
   fallbackMode: "readonly",
 
-  onActive: () => {
-    console.log("App is active");
-  },
-  onWarning: (message) => {
-    showBanner(message); // non-blocking notice
-  },
-  onReadonly: () => {
-    // SDK automatically blocks POST/PUT/PATCH/DELETE
-    showNotice("This app is in read-only mode.");
-  },
-  onLimited: () => {
-    disablePremiumFeatures();
-  },
-  onLocked: (message) => {
-    document.body.innerHTML = \`<h1>\${message}</h1>\`;
-  },
-  onExpired: () => {
-    showPage("Contract expired. Please renew.");
-  },
-  onDisconnect: () => {
-    console.warn("Lost connection to license server");
-  },
+  onActive:   () => console.log("App is active"),
+  onWarning:  (msg) => showBanner(msg),
+  onReadonly: () => showNotice("Read-only mode active"),
+  onLimited:  () => disablePremiumFeatures(),
+  onLocked:   (msg) => { document.body.innerHTML = \`<h1>\${msg}</h1>\`; },
+  onExpired:  () => showPage("Contract expired. Please renew."),
+  onDisconnect: () => console.warn("Lost connection"),
 });`
 
 const states = [
-  { name: 'ACTIVE', callback: 'onActive()', blocks: false, use: 'Full access', color: 'text-fuse-green' },
-  { name: 'WARNING', callback: 'onWarning(msg)', blocks: false, use: 'Show a notice to the user', color: 'text-fuse-yellow' },
-  { name: 'READONLY', callback: 'onReadonly()', blocks: true, use: 'Block writes, allow reads', color: 'text-fuse-blue' },
-  { name: 'LIMITED', callback: 'onLimited()', blocks: false, use: 'Custom partial restrictions', color: 'text-fuse-orange' },
-  { name: 'LOCKED', callback: 'onLocked(msg)', blocks: true, use: 'Full block with message', color: 'text-fuse-red' },
-  { name: 'EXPIRED', callback: 'onExpired()', blocks: true, use: 'Contract ended', color: 'text-fuse-red' },
-  { name: 'SLEEP', callback: 'onSleep()', blocks: true, use: 'Temporarily paused', color: 'text-fuse-dim' },
-  { name: 'SELF_DESTRUCT', callback: 'onSelfDestruct()', blocks: true, use: 'Custom handler', color: 'text-fuse-purple' },
+  { name: 'ACTIVE',        callback: 'onActive()',       blocks: false, use: 'Full access',              color: 'text-fuse-green'  },
+  { name: 'WARNING',       callback: 'onWarning(msg)',   blocks: false, use: 'Show notice to user',      color: 'text-fuse-yellow' },
+  { name: 'READONLY',      callback: 'onReadonly()',     blocks: true,  use: 'Block writes, allow reads', color: 'text-fuse-blue'   },
+  { name: 'LIMITED',       callback: 'onLimited()',      blocks: false, use: 'Custom partial restrict',   color: 'text-fuse-orange' },
+  { name: 'LOCKED',        callback: 'onLocked(msg)',    blocks: true,  use: 'Full block with message',   color: 'text-fuse-red'    },
+  { name: 'EXPIRED',       callback: 'onExpired()',      blocks: true,  use: 'Contract ended',            color: 'text-fuse-red'    },
+  { name: 'SLEEP',         callback: 'onSleep()',        blocks: true,  use: 'App paused',                color: 'text-fuse-dim'    },
+  { name: 'SELF_DESTRUCT', callback: 'onSelfDestruct()', blocks: true, use: 'Custom handler',            color: 'text-fuse-purple' },
 ]
 
 const frameworks = reactive([
   {
-    name: 'React',
-    open: false,
-    code: `// src/App.jsx
-import { useEffect } from "react";
+    name: 'React', open: false,
+    code: `import { useEffect } from "react";
 import DeadFuse from "dead-fuse";
 
 export function useLicenseControl() {
   useEffect(() => {
     DeadFuse.activate({
       projectId: import.meta.env.VITE_FUSE_PROJECT_ID,
-      master: import.meta.env.VITE_FUSE_MASTER_URL,
       token: import.meta.env.VITE_FUSE_TOKEN,
       fallbackMode: "readonly",
-      onLocked: (msg) => {
-        window.location.href = \`/locked?msg=\${encodeURIComponent(msg)}\`;
-      },
+      onLocked: (msg) => { window.location.href = \`/locked?msg=\${encodeURIComponent(msg)}\`; },
     });
     return () => DeadFuse.deactivate();
   }, []);
-}
-
-export default function App() {
-  useLicenseControl();
-  return <YourApp />;
 }`,
   },
   {
-    name: 'Next.js',
-    open: false,
+    name: 'Next.js', open: false,
     code: `// app/providers.tsx
 "use client";
 import { useEffect } from "react";
@@ -296,11 +249,10 @@ export function FuseProvider({ children }) {
   useEffect(() => {
     DeadFuse.activate({
       projectId: process.env.NEXT_PUBLIC_FUSE_PROJECT_ID,
-      master: process.env.NEXT_PUBLIC_FUSE_MASTER_URL,
       token: process.env.NEXT_PUBLIC_FUSE_TOKEN,
       fallbackMode: "readonly",
       onLocked: (msg) => {
-        document.body.innerHTML = \`<p style="text-align:center;padding:4rem">\${msg}</p>\`;
+        document.body.innerHTML = \`<p style="padding:4rem;text-align:center">\${msg}</p>\`;
       },
     });
     return () => DeadFuse.deactivate();
@@ -309,8 +261,7 @@ export function FuseProvider({ children }) {
 }`,
   },
   {
-    name: 'Vue 3',
-    open: false,
+    name: 'Vue 3', open: false,
     code: `// src/plugins/deadfuse.js
 import DeadFuse from "dead-fuse";
 
@@ -318,7 +269,6 @@ export default {
   install(app) {
     DeadFuse.activate({
       projectId: import.meta.env.VITE_FUSE_PROJECT_ID,
-      master: import.meta.env.VITE_FUSE_MASTER_URL,
       token: import.meta.env.VITE_FUSE_TOKEN,
       fallbackMode: "readonly",
       onLocked: (msg) => {
@@ -326,18 +276,10 @@ export default {
       },
     });
   },
-};
-
-// main.js
-import { createApp } from "vue";
-import App from "./App.vue";
-import deadfusePlugin from "./plugins/deadfuse";
-
-createApp(App).use(deadfusePlugin).mount("#app");`,
+};`,
   },
   {
-    name: 'Nuxt 3',
-    open: false,
+    name: 'Nuxt 3', open: false,
     code: `// plugins/deadfuse.client.ts
 import DeadFuse from "dead-fuse";
 
@@ -345,7 +287,6 @@ export default defineNuxtPlugin(() => {
   const config = useRuntimeConfig();
   DeadFuse.activate({
     projectId: config.public.fuseProjectId,
-    master: config.public.fuseMasterUrl,
     token: config.public.fuseToken,
     fallbackMode: "readonly",
     onLocked: (msg) => {
@@ -355,32 +296,22 @@ export default defineNuxtPlugin(() => {
 });`,
   },
   {
-    name: 'Plain HTML (CDN)',
-    open: false,
-    code: `<!DOCTYPE html>
-<html>
-<head>
-  <script type="module">
-    import DeadFuse from "https://esm.sh/dead-fuse";
-    DeadFuse.activate({
-      projectId: "your-project-key",
-      master: "wss://your-host.com/fuse",
-      token: "your-public-token",
-      onLocked: (msg) => {
-        document.body.innerHTML = \`<h1>\${msg}</h1>\`;
-      },
-    });
-  <\/script>
-</head>
-<body>
-  <h1>My App</h1>
-</body>
-</html>`,
+    name: 'Plain HTML (CDN)', open: false,
+    code: `<script type="module">
+  import DeadFuse from "https://esm.sh/dead-fuse";
+  DeadFuse.activate({
+    projectId: "your-project-key",
+    token: "your-public-token",
+    onLocked: (msg) => {
+      document.body.innerHTML = \`<h1>\${msg}</h1>\`;
+    },
+  });
+<\/script>`,
   },
 ])
 
 const ethics = [
-  'Always inform clients upfront that remote state control is embedded in their app.',
+  'Always inform clients upfront that remote state control is embedded.',
   'Include it in your contract terms before deploying.',
   'Use WARNING state as a first notice before escalating to READONLY or LOCKED.',
   'Always set a grace period — give clients time to respond.',
@@ -398,73 +329,59 @@ async function copy(text: string, key: string) {
 
 <style scoped>
 .doc-heading {
-  @apply text-xl font-bold text-fuse-text mb-3 pb-2 border-b border-fuse-border/50;
+  @apply text-sm font-bold text-fuse-text mb-2.5 pb-2 border-b border-white/[0.06] uppercase tracking-widest font-mono;
 }
-.doc-body {
-  @apply text-fuse-dim text-sm leading-relaxed;
-}
+.doc-body { @apply text-fuse-dim text-xs leading-relaxed; }
+
 .code-inline {
-  @apply bg-black/40 border border-white/[0.08] rounded px-1.5 py-0.5 font-mono text-fuse-text text-xs;
+  @apply rounded px-1.5 py-0.5 font-mono text-fuse-text text-[10px];
+  background: rgba(255,255,255,0.06);
+  border: 0.5px solid rgba(255,255,255,0.08);
 }
+
 .glass-panel {
-  @apply bg-white/[0.025] backdrop-blur-sm border border-white/[0.07] rounded-xl;
+  @apply rounded-xl border border-white/[0.07] p-4;
+  background: rgba(255,255,255,0.025);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
 }
+
 .code-block {
-  @apply bg-black/50 border border-white/[0.07] rounded-lg overflow-hidden;
+  @apply rounded-xl border border-white/[0.07] overflow-hidden;
+  background: rgba(0,0,0,0.4);
 }
 .code-block-header {
-  @apply flex items-center justify-between px-4 py-2 border-b border-white/[0.06] text-xs text-fuse-dim font-mono;
-}
-.code-block-inner {
-  @apply relative bg-black/30;
+  @apply flex items-center justify-between px-3 py-2 border-b border-white/[0.06] text-[10px] text-fuse-muted font-mono;
 }
 .code-content {
-  @apply text-fuse-dim text-xs font-mono p-4 overflow-x-auto whitespace-pre leading-relaxed;
+  @apply text-fuse-dim text-[11px] font-mono p-3 overflow-x-auto whitespace-pre leading-relaxed;
 }
 .copy-btn {
-  @apply text-xs text-fuse-dim hover:text-fuse-text font-mono border border-white/[0.08]
-  rounded px-2 py-0.5 transition-colors whitespace-nowrap;
+  @apply text-[10px] text-fuse-muted hover:text-fuse-text font-mono border border-white/[0.08] rounded px-1.5 py-0.5 transition-colors whitespace-nowrap;
+  background: rgba(255,255,255,0.03);
 }
 
 /* Architecture diagram */
-.architecture-diagram {
-  @apply flex items-center gap-4 flex-wrap;
-}
+.arch-diagram { @apply flex items-stretch gap-3 flex-wrap; }
 .arch-box {
-  @apply flex-1 min-w-48 bg-white/[0.03] border rounded-xl p-4;
-}
-.arch-box--server { @apply border-fuse-red/30; }
-.arch-box--client { @apply border-fuse-blue/30; }
-.arch-label { @apply text-xs font-mono font-bold uppercase tracking-widest mb-3; }
-.arch-box--server .arch-label { @apply text-fuse-red; }
-.arch-box--client .arch-label { @apply text-fuse-blue; }
-.arch-items { @apply flex flex-col gap-1; }
-.arch-items span { @apply text-xs text-fuse-dim; }
-.arch-arrow {
-  @apply flex flex-col items-center gap-1 flex-shrink-0;
-}
-.arch-arrow-line {
-  @apply w-12 h-0.5 bg-gradient-to-r from-fuse-red/50 to-fuse-blue/50;
-}
-.arch-arrow-label {
-  @apply text-xs text-fuse-dim font-mono text-center leading-relaxed;
+  @apply flex-1 min-w-36 rounded-xl border p-4;
+  background: rgba(255,255,255,0.02);
+  backdrop-filter: blur(8px);
 }
 
 /* States table */
-.states-table { @apply border border-white/[0.07] rounded-xl overflow-hidden; }
+.states-table { @apply rounded-xl border border-white/[0.07] overflow-hidden; }
 .states-header {
-  @apply grid grid-cols-4 gap-4 px-4 py-2.5 bg-white/[0.04] text-xs font-mono text-fuse-dim uppercase tracking-widest;
+  @apply grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 px-4 py-2 text-[9px] font-mono text-fuse-muted uppercase tracking-widest;
+  background: rgba(255,255,255,0.03);
 }
 .states-row {
-  @apply grid grid-cols-4 gap-4 px-4 py-3 border-t border-white/[0.05] items-center;
+  @apply grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 px-4 py-2.5 border-t border-white/[0.04] items-center;
 }
-.state-badge { @apply font-mono font-bold text-xs; }
 
-/* Info grid */
-.info-grid { @apply grid grid-cols-2 sm:grid-cols-4 gap-3; }
+/* Info cards */
 .info-card {
-  @apply bg-white/[0.03] border border-white/[0.06] rounded-lg p-3 flex flex-col gap-1;
+  @apply flex rounded-lg border border-white/[0.06] p-3;
+  background: rgba(255,255,255,0.02);
 }
-.info-label { @apply text-xs font-mono text-fuse-dim; }
-.info-value { @apply text-fuse-text font-bold text-sm; }
 </style>

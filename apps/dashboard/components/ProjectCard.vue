@@ -3,37 +3,32 @@
     class="project-card group cursor-pointer"
     @click="$emit('click')"
   >
-    <!-- Subtle glow on hover -->
-    <div class="project-card__glow" />
-
-    <div class="relative z-10">
-      <div class="flex items-start justify-between mb-4">
-        <div class="flex-1 min-w-0 mr-3">
-          <h3 class="font-bold text-fuse-text text-base truncate group-hover:text-white transition-colors duration-200">
-            {{ project.name }}
-          </h3>
-          <p class="text-fuse-dim text-xs font-mono mt-0.5 truncate opacity-60">{{ project.project_key }}</p>
-        </div>
-        <StatusBadge :state="project.state" size="sm" />
+    <div class="flex items-start justify-between mb-3">
+      <div class="flex-1 min-w-0 mr-2">
+        <h3 class="font-semibold text-fuse-text text-sm truncate group-hover:text-white transition-colors duration-150">
+          {{ project.name }}
+        </h3>
+        <p class="text-fuse-muted text-[10px] font-mono mt-0.5 truncate">{{ project.project_key }}</p>
       </div>
+      <StatusBadge :state="project.state" size="sm" />
+    </div>
 
-      <div v-if="project.message" class="text-fuse-dim text-xs italic mb-4 truncate opacity-70">
-        "{{ project.message }}"
-      </div>
+    <div v-if="project.message" class="text-fuse-muted text-[10px] italic mb-3 truncate">
+      "{{ project.message }}"
+    </div>
 
-      <div v-if="project.client_name || project.priority" class="flex items-center gap-2 mb-3">
-        <span v-if="project.client_name" class="text-fuse-dim text-xs bg-white/[0.05] px-2 py-1 rounded-full">
-          {{ project.client_name }}
-        </span>
-        <span v-if="project.priority" class="text-fuse-dim text-xs bg-white/[0.05] px-2 py-1 rounded-full capitalize">
-          {{ project.priority }}
-        </span>
-      </div>
+    <div v-if="project.client_name || project.priority" class="flex items-center gap-1.5 mb-3">
+      <span v-if="project.client_name" class="text-fuse-dim text-[10px] bg-white/[0.04] border border-white/[0.07] px-1.5 py-0.5 rounded-md font-mono">
+        {{ project.client_name }}
+      </span>
+      <span v-if="project.priority" class="text-fuse-dim text-[10px] bg-white/[0.04] border border-white/[0.07] px-1.5 py-0.5 rounded-md font-mono capitalize">
+        {{ project.priority }}
+      </span>
+    </div>
 
-      <div class="flex items-center justify-between pt-3 border-t border-white/[0.06]">
-        <span class="text-fuse-dim text-xs font-mono">Grace: {{ project.grace_period }}d</span>
-        <span class="text-fuse-dim text-xs opacity-60">{{ formatDate(project.updated_at) }}</span>
-      </div>
+    <div class="flex items-center justify-between pt-2.5 border-t border-white/[0.05]">
+      <span class="text-fuse-muted text-[10px] font-mono">grace {{ project.grace_period }}d</span>
+      <span class="text-fuse-muted text-[10px]">{{ formatDate(project.updated_at) }}</span>
     </div>
   </div>
 </template>
@@ -72,18 +67,27 @@ function formatDate(d: string) {
 
 <style scoped>
 .project-card {
-  @apply relative overflow-hidden rounded-xl p-5
-  bg-white/[0.025] backdrop-blur-sm
-  border border-white/[0.07]
-  hover:border-white/[0.14]
-  transition-all duration-300
-  hover:shadow-lg hover:shadow-black/30
-  hover:-translate-y-0.5;
+  @apply relative overflow-hidden rounded-xl p-4
+  border border-white/[0.06]
+  hover:border-white/[0.12]
+  transition-all duration-200
+  hover:-translate-y-px;
+  background: rgba(255, 255, 255, 0.025);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
 }
 
-.project-card__glow {
-  @apply absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300
-  pointer-events-none;
-  background: radial-gradient(circle at 50% 0%, rgba(255, 51, 51, 0.04), transparent 70%);
+.project-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 50% -20%, rgba(255, 51, 51, 0.03), transparent 60%);
+  opacity: 0;
+  transition: opacity 0.2s;
+  pointer-events: none;
+}
+
+.project-card:hover::before {
+  opacity: 1;
 }
 </style>

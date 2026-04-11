@@ -1,76 +1,85 @@
 <template>
   <div class="min-h-screen bg-fuse-black relative overflow-hidden">
-    <!-- Ambient glows -->
-    <div class="ambient-glow ambient-glow--tl" />
-    <div class="ambient-glow ambient-glow--br" />
+    <div class="absolute inset-0 pointer-events-none">
+      <div class="absolute -top-48 -left-48 w-96 h-96 bg-fuse-red/[0.04] rounded-full blur-3xl" />
+      <div class="absolute -bottom-32 -right-32 w-64 h-64 bg-fuse-red/[0.03] rounded-full blur-3xl" />
+    </div>
 
     <!-- Nav -->
-    <nav class="border-b border-fuse-border/50 px-6 py-4 flex items-center justify-between backdrop-blur-md bg-fuse-black/70 sticky top-0 z-10">
-      <div class="flex items-center gap-3">
-        <div class="w-7 h-7 bg-fuse-red rounded-sm flex items-center justify-center shadow-lg shadow-fuse-red/30">
-          <span class="text-white font-mono text-xs font-bold">DF</span>
+    <nav class="border-b border-white/[0.07] px-5 py-3 flex items-center justify-between sticky top-0 z-10"
+      style="background: rgba(10,10,10,0.8); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);">
+      <div class="flex items-center gap-2.5">
+        <div class="w-6 h-6 bg-fuse-red rounded-sm flex items-center justify-center shadow-sm shadow-fuse-red/20">
+          <span class="text-white font-mono text-[9px] font-bold">DF</span>
         </div>
-        <div>
-          <span class="font-bold text-fuse-text">Projects</span>
-          <span class="hidden sm:block text-fuse-border text-xs font-mono">License Control</span>
-        </div>
+        <span class="font-semibold text-fuse-text text-sm">Projects</span>
+        <span class="text-white/10 hidden sm:block">·</span>
+        <span class="text-fuse-muted text-[10px] font-mono hidden sm:block tracking-widest">License Control</span>
       </div>
       <div class="flex items-center gap-4">
-        <NuxtLink to="/docs" class="text-fuse-dim hover:text-fuse-text text-sm transition-colors font-mono hidden sm:inline">
+        <NuxtLink to="/docs" class="text-fuse-dim hover:text-fuse-text text-xs transition-colors font-mono hidden sm:inline">
           Docs
         </NuxtLink>
-        <span class="text-fuse-dim text-sm font-mono hidden sm:inline">{{ userEmail }}</span>
-        <button @click="logout" class="text-fuse-dim hover:text-fuse-red text-sm transition-colors">Logout</button>
+        <span class="text-fuse-muted text-xs font-mono hidden sm:inline">{{ userEmail }}</span>
+        <button @click="logout" class="text-fuse-dim hover:text-fuse-red text-xs transition-colors font-mono">Logout</button>
       </div>
     </nav>
 
-    <main class="max-w-5xl mx-auto px-6 py-10 relative z-10">
+    <main class="max-w-4xl mx-auto px-5 py-8 relative z-10">
       <!-- Header -->
-      <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between mb-8">
+      <div class="flex items-center justify-between mb-6">
         <div>
-          <h1 class="text-2xl font-bold text-fuse-text">Projects</h1>
-          <p class="text-fuse-dim text-sm mt-1">Manage and control your deployed applications</p>
+          <h1 class="text-xl font-bold text-fuse-text">Projects</h1>
+          <p class="text-fuse-dim text-xs mt-0.5">Manage and control your deployed applications</p>
         </div>
         <button
           @click="showCreate = true"
           :disabled="limitReached"
-          :class="limitReached ? 'btn-secondary opacity-60 cursor-not-allowed' : 'btn-primary'"
+          class="btn-primary text-xs"
+          :class="limitReached ? 'opacity-50 cursor-not-allowed' : ''"
         >
-          + New Project
+          + New project
         </button>
       </div>
-      <div v-if="limitReached" class="upgrade-banner mb-8">
-        <div class="flex items-center justify-between">
-          <p>
-            You've reached the project limit of <strong>{{ projectLimit }}</strong>. Upgrade your plan to create more projects.
-          </p>
-          <a href="#upgrade" class="btn-upgrade flex-shrink-0">Upgrade Now</a>
+
+      <!-- Upgrade banner -->
+      <div v-if="limitReached" class="upgrade-banner mb-5">
+        <div class="flex items-center justify-between gap-3">
+          <div>
+            <p class="text-fuse-red text-xs font-semibold mb-0.5">Project limit reached</p>
+            <p class="text-fuse-red/60 text-[10px]">You're on the Free plan ({{ projectLimit }} projects). Upgrade to create more.</p>
+          </div>
+          <NuxtLink to="/pricing" class="btn-upgrade flex-shrink-0">Upgrade →</NuxtLink>
         </div>
       </div>
 
       <!-- Stats bar -->
-      <div v-if="projects.length > 0 && !loading" class="stats-bar mb-8">
+      <div v-if="projects.length > 0 && !loading" class="stats-bar mb-5">
         <div class="stat-item" v-for="stat in projectStats" :key="stat.label">
-          <span class="stat-count" :class="stat.color">{{ stat.count }}</span>
-          <span class="stat-label">{{ stat.label }}</span>
+          <span class="font-mono font-bold text-sm" :class="stat.color">{{ stat.count }}</span>
+          <span class="text-[10px] text-fuse-muted font-mono">{{ stat.label }}</span>
+        </div>
+        <div class="ml-auto text-[10px] font-mono text-fuse-muted">
+          {{ projects.length }}/{{ projectLimit }} projects
         </div>
       </div>
 
       <!-- Empty state -->
       <div v-if="!loading && projects.length === 0"
-        class="text-center py-20 border border-dashed border-fuse-border/50 rounded-2xl bg-white/[0.015] backdrop-blur-sm">
-        <div class="text-5xl mb-4 opacity-60">🔌</div>
-        <p class="text-fuse-dim text-sm mb-6 max-w-xs mx-auto">No projects yet. Create your first one to start controlling your deployed apps.</p>
-        <button @click="showCreate = true" class="btn-primary">Create First Project</button>
+        class="text-center py-16 border border-dashed border-white/[0.07] rounded-xl"
+        style="background: rgba(255,255,255,0.01); backdrop-filter: blur(8px);">
+        <p class="text-3xl mb-3 opacity-40">🔌</p>
+        <p class="text-fuse-dim text-xs mb-4 max-w-xs mx-auto">No projects yet. Create your first one to start controlling deployed apps.</p>
+        <button @click="showCreate = true" class="btn-primary text-xs">Create first project</button>
       </div>
 
-      <!-- Loading skeleton -->
-      <div v-if="loading" class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div v-for="i in 4" :key="i" class="h-36 bg-white/[0.03] border border-white/[0.06] rounded-xl animate-pulse" />
+      <!-- Loading -->
+      <div v-if="loading" class="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div v-for="i in 4" :key="i" class="h-28 rounded-xl animate-pulse" style="background: rgba(255,255,255,0.03); border: 0.5px solid rgba(255,255,255,0.06);" />
       </div>
 
-      <!-- Project grid -->
-      <div v-else-if="projects.length > 0" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <!-- Grid -->
+      <div v-else-if="projects.length > 0" class="grid grid-cols-1 md:grid-cols-2 gap-3">
         <ProjectCard
           v-for="project in projects"
           :key="project.id"
@@ -80,57 +89,60 @@
       </div>
     </main>
 
-    <!-- Create project modal -->
+    <!-- Create modal -->
     <Teleport to="body">
       <div v-if="showCreate"
-        class="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-50 p-4"
+        class="fixed inset-0 flex items-center justify-center z-50 p-4"
+        style="background: rgba(0,0,0,0.7); backdrop-filter: blur(12px);"
         @click.self="showCreate = false">
-        <div class="glass-modal w-full max-w-md animate-slide-up">
-          <div class="p-6 border-b border-white/[0.07]">
-            <h2 class="text-lg font-bold text-fuse-text">New Project</h2>
-            <p class="text-fuse-dim text-xs mt-1">Create a new project to control a client app.</p>
+        <div class="glass-modal w-full max-w-sm animate-slide-up">
+          <div class="flex items-center justify-between px-5 py-4 border-b border-white/[0.06]">
+            <div>
+              <h2 class="text-sm font-bold text-fuse-text">New project</h2>
+              <p class="text-fuse-muted text-[10px] mt-0.5">Control a new client app</p>
+            </div>
+            <button @click="showCreate = false" class="text-fuse-muted hover:text-fuse-dim text-sm">✕</button>
           </div>
-          <div class="p-6 space-y-4">
+          <div class="p-5 space-y-3">
             <div class="field-group">
-              <label class="field-label">Project Name</label>
+              <label class="field-label">Project name</label>
               <input v-model="newProject.name" type="text" class="field-input" placeholder="e.g. Acme Corp Dashboard"
                 @keydown.enter="createProject" />
             </div>
-            <div class="field-group">
-              <label class="field-label">Client Name</label>
-              <input v-model="newProject.clientName" type="text" class="field-input" placeholder="e.g. Acme Corporation" />
+            <div class="grid grid-cols-2 gap-2">
+              <div class="field-group">
+                <label class="field-label">Client name</label>
+                <input v-model="newProject.clientName" type="text" class="field-input" placeholder="Acme Corp" />
+              </div>
+              <div class="field-group">
+                <label class="field-label">Priority</label>
+                <select v-model="newProject.priority" class="field-input">
+                  <option value="low">Low</option>
+                  <option value="medium">Medium</option>
+                  <option value="high">High</option>
+                  <option value="urgent">Urgent</option>
+                </select>
+              </div>
             </div>
-            <div class="field-group">
-              <label class="field-label">Target Completion</label>
-              <input v-model="newProject.targetCompletion" type="date" class="field-input" />
+            <div class="grid grid-cols-2 gap-2">
+              <div class="field-group">
+                <label class="field-label">Budget</label>
+                <input v-model="newProject.budget" type="text" class="field-input" placeholder="$50,000" />
+              </div>
+              <div class="field-group">
+                <label class="field-label">Grace period (days)</label>
+                <input v-model.number="newProject.gracePeriod" type="number" min="0" max="365" class="field-input" />
+              </div>
             </div>
             <div class="field-group">
               <label class="field-label">Description</label>
-              <textarea v-model="newProject.description" class="field-input min-h-[80px]" placeholder="Project description and requirements..." />
-            </div>
-            <div class="field-group">
-              <label class="field-label">Budget</label>
-              <input v-model="newProject.budget" type="text" class="field-input" placeholder="e.g. $50,000" />
-            </div>
-            <div class="field-group">
-              <label class="field-label">Priority</label>
-              <select v-model="newProject.priority" class="field-input">
-                <option value="low">Low</option>
-                <option value="medium">Medium</option>
-                <option value="high">High</option>
-                <option value="urgent">Urgent</option>
-              </select>
-            </div>
-            <div class="field-group">
-              <label class="field-label">Grace Period (days)</label>
-              <input v-model.number="newProject.gracePeriod" type="number" min="0" max="365" class="field-input" :disabled="limitReached" />
-              <p class="text-fuse-dim text-xs mt-1">Days before restrictions enforce after a state change.</p>
+              <textarea v-model="newProject.description" class="field-input min-h-[60px] resize-none" placeholder="Project notes..." />
             </div>
             <div v-if="createError" class="error-box">{{ createError }}</div>
-            <div class="flex gap-3 pt-1">
-              <button @click="showCreate = false" class="btn-ghost flex-1">Cancel</button>
-              <button @click="createProject" :disabled="createLoading || limitReached" class="btn-primary flex-1">
-                {{ createLoading ? 'Creating…' : 'Create Project' }}
+            <div class="flex gap-2 pt-1">
+              <button @click="showCreate = false" class="btn-ghost flex-1 text-xs">Cancel</button>
+              <button @click="createProject" :disabled="createLoading" class="btn-primary flex-1 text-xs">
+                {{ createLoading ? 'Creating…' : 'Create project' }}
               </button>
             </div>
           </div>
@@ -138,7 +150,6 @@
       </div>
     </Teleport>
 
-    <!-- Footer -->
     <DashboardFooter />
   </div>
 </template>
@@ -155,8 +166,8 @@ const createError = ref('')
 const userEmail = ref('')
 const projectLimit = 2
 
-const newProject = reactive({ 
-  name: '', 
+const newProject = reactive({
+  name: '',
   gracePeriod: 3,
   clientName: '',
   targetCompletion: '',
@@ -169,9 +180,7 @@ const limitReached = computed(() => projects.value.length >= projectLimit)
 
 const projectStats = computed(() => {
   const counts: Record<string, number> = {}
-  for (const p of projects.value) {
-    counts[p.state] = (counts[p.state] || 0) + 1
-  }
+  for (const p of projects.value) counts[p.state] = (counts[p.state] || 0) + 1
   return [
     { label: 'Active', count: counts['ACTIVE'] || 0, color: 'text-fuse-green' },
     { label: 'Warning', count: counts['WARNING'] || 0, color: 'text-fuse-yellow' },
@@ -201,22 +210,15 @@ async function loadProjects() {
 }
 
 async function createProject() {
-  if (limitReached.value) {
-    createError.value = 'Project limit reached. Upgrade to create more projects.'
-    return
-  }
-
-  if (!newProject.name.trim()) {
-    createError.value = 'Project name is required'
-    return
-  }
+  if (limitReached.value) { createError.value = 'Project limit reached.'; return }
+  if (!newProject.name.trim()) { createError.value = 'Project name is required'; return }
   createError.value = ''
   createLoading.value = true
   try {
     const project = await $fetch('/api/projects', {
       method: 'POST',
-      body: { 
-        name: newProject.name, 
+      body: {
+        name: newProject.name,
         gracePeriod: newProject.gracePeriod,
         clientName: newProject.clientName,
         targetCompletion: newProject.targetCompletion,
@@ -227,13 +229,7 @@ async function createProject() {
     })
     projects.value.unshift(project)
     showCreate.value = false
-    newProject.name = ''
-    newProject.gracePeriod = 3
-    newProject.clientName = ''
-    newProject.targetCompletion = ''
-    newProject.description = ''
-    newProject.budget = ''
-    newProject.priority = 'medium'
+    Object.assign(newProject, { name: '', gracePeriod: 3, clientName: '', targetCompletion: '', description: '', budget: '', priority: 'medium' })
   } catch (err: any) {
     createError.value = err?.data?.statusMessage || 'Failed to create project'
   } finally {
@@ -248,62 +244,56 @@ async function logout() {
 </script>
 
 <style scoped>
-/* Ambient glows */
-.ambient-glow {
-  @apply absolute w-96 h-96 rounded-full blur-3xl pointer-events-none;
-}
-.ambient-glow--tl {
-  @apply -top-32 -left-32 bg-fuse-red/[0.04];
-}
-.ambient-glow--br {
-  @apply -bottom-32 -right-32 bg-fuse-red/[0.03];
+.upgrade-banner {
+  @apply rounded-xl border border-fuse-red/15 px-4 py-3;
+  background: rgba(255, 51, 51, 0.04);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
 }
 
-/* Stats bar */
-.stats-bar {
-  @apply flex items-center gap-1 bg-white/[0.02] backdrop-blur-sm border border-white/[0.06]
-  rounded-xl px-4 py-3 overflow-x-auto;
-}
-.upgrade-banner {
-  @apply bg-fuse-red/10 border border-fuse-red/20 rounded-xl p-4 text-sm text-fuse-red;
-}
 .btn-upgrade {
-  @apply bg-fuse-red text-white font-bold text-xs px-4 py-2 rounded-md hover:bg-red-500 transition-colors whitespace-nowrap;
+  @apply bg-fuse-red hover:bg-red-500 text-white font-bold text-[10px] font-mono uppercase tracking-widest px-3 py-1.5 rounded-lg transition-colors;
+}
+
+.stats-bar {
+  @apply flex items-center gap-1 rounded-xl px-4 py-2.5 border border-white/[0.06];
+  background: rgba(255,255,255,0.02);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
 }
 
 .stat-item {
-  @apply flex items-center gap-2 px-4 py-1 border-r border-white/[0.06] last:border-0 flex-shrink-0;
-}
-.stat-count {
-  @apply text-xl font-bold font-mono;
-}
-.stat-label {
-  @apply text-xs text-fuse-dim font-mono;
+  @apply flex items-center gap-1.5 px-3 py-1 border-r border-white/[0.05] last:border-0 flex-shrink-0;
 }
 
-/* Glass modal */
 .glass-modal {
-  @apply bg-fuse-carbon/80 backdrop-blur-xl border border-white/[0.1] rounded-2xl
-  shadow-2xl shadow-black/50;
+  @apply rounded-2xl border border-white/[0.1];
+  background: rgba(17,17,17,0.9);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  box-shadow: 0 24px 64px rgba(0,0,0,0.5);
 }
 
-/* Fields */
-.field-group { @apply flex flex-col gap-1.5; }
-.field-label { @apply text-xs font-mono text-fuse-dim uppercase tracking-widest; }
+.field-group { @apply flex flex-col gap-1; }
+.field-label { @apply text-[9px] font-mono text-fuse-muted uppercase tracking-widest; }
 .field-input {
-  @apply w-full bg-black/30 backdrop-blur-sm border border-white/[0.1] rounded-md px-3 py-2.5
-  text-fuse-text text-sm outline-none focus:border-fuse-red/60 focus:ring-1 focus:ring-fuse-red/20
-  transition-all duration-200 placeholder:text-fuse-muted;
+  @apply w-full rounded-lg px-2.5 py-2 text-fuse-text text-xs outline-none transition-all duration-150 placeholder:text-fuse-muted border;
+  background: rgba(0,0,0,0.3);
+  border-color: rgba(255,255,255,0.08);
 }
+.field-input:focus {
+  border-color: rgba(255,51,51,0.4);
+  box-shadow: 0 0 0 3px rgba(255,51,51,0.06);
+}
+
 .btn-primary {
-  @apply bg-fuse-red hover:bg-red-500 text-white font-bold text-sm px-4 py-2.5 rounded-md
-  transition-all duration-200 shadow-lg shadow-fuse-red/20 disabled:opacity-40 disabled:cursor-not-allowed;
+  @apply bg-fuse-red hover:bg-red-500 text-white font-bold px-4 py-2 rounded-lg transition-all duration-150 disabled:opacity-40 disabled:cursor-not-allowed;
 }
 .btn-ghost {
-  @apply border border-white/[0.1] hover:border-white/[0.2] text-fuse-dim hover:text-fuse-text
-  text-sm px-4 py-2.5 rounded-md transition-all duration-200;
+  @apply border border-white/[0.1] hover:border-white/[0.18] text-fuse-dim hover:text-fuse-text px-4 py-2 rounded-lg transition-all duration-150;
 }
 .error-box {
-  @apply bg-fuse-red/10 border border-fuse-red/30 text-fuse-red text-sm rounded-md px-3 py-2;
+  @apply text-fuse-red text-xs rounded-lg px-3 py-2 border border-fuse-red/20;
+  background: rgba(255,51,51,0.06);
 }
 </style>
