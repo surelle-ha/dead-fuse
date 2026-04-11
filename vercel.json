@@ -1,4 +1,4 @@
 {
-  "buildCommand": "pnpm --filter dead-fuse build && pnpm --filter dashboard build",
+  "buildCommand": "pnpm --filter @surelle-ha/dead-fuse build && pnpm --filter dashboard build",
   "outputDirectory": "apps/dashboard/.output"
 }

@@ -19,7 +19,7 @@ A comprehensive test suite and interactive UI for testing the Dead Fuse client l
 
 2. Build the Dead Fuse client package:
    ```bash
-   pnpm --filter dead-fuse build
+   pnpm --filter @surelle-ha/dead-fuse build
    ```
 
 ## Running the Test App

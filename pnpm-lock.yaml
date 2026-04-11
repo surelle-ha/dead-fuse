@@ -20,7 +20,7 @@ importers:
       bcryptjs:
         specifier: ^2.4.3
         version: 2.4.3
-      dead-fuse:
+      '@surelle-ha/dead-fuse':
         specifier: workspace:*
         version: link:../../packages/client
       jsonwebtoken:
@@ -60,7 +60,7 @@ importers:
       cors:
         specifier: ^2.8.5
         version: 2.8.6
-      dead-fuse:
+      '@surelle-ha/dead-fuse':
         specifier: workspace:*
         version: link:../../packages/client
       express:

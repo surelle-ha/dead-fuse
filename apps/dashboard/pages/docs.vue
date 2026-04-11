@@ -65,11 +65,11 @@
           <div class="code-block mt-3">
             <div class="code-block-header">
               <span>terminal</span>
-              <button @click="copy('npm install dead-fuse', 'install')" class="copy-btn">{{ copied === 'install' ? '✓' : 'Copy' }}</button>
+              <button @click="copy('npm install @surelle-ha/dead-fuse', 'install')" class="copy-btn">{{ copied === 'install' ? '✓' : 'Copy' }}</button>
             </div>
-            <pre class="code-content">npm install dead-fuse
+            <pre class="code-content">npm install @surelle-ha/dead-fuse
 # or
-pnpm add dead-fuse</pre>
+pnpm add @surelle-ha/dead-fuse</pre>
           </div>
         </section>
 
@@ -193,7 +193,7 @@ const toc = [
   { id: 'ethics',       title: 'Ethical usage' },
 ]
 
-const basicUsage = `import DeadFuse from "dead-fuse";
+const basicUsage = `import DeadFuse from "@surelle-ha/dead-fuse";
 
 DeadFuse.activate({
   projectId: "YOUR_PROJECT_KEY",
@@ -224,7 +224,7 @@ const frameworks = reactive([
   {
     name: 'React', open: false,
     code: `import { useEffect } from "react";
-import DeadFuse from "dead-fuse";
+import DeadFuse from "@surelle-ha/dead-fuse";
 
 export function useLicenseControl() {
   useEffect(() => {
@@ -243,7 +243,7 @@ export function useLicenseControl() {
     code: `// app/providers.tsx
 "use client";
 import { useEffect } from "react";
-import DeadFuse from "dead-fuse";
+import DeadFuse from "@surelle-ha/dead-fuse";
 
 export function FuseProvider({ children }) {
   useEffect(() => {
@@ -263,7 +263,7 @@ export function FuseProvider({ children }) {
   {
     name: 'Vue 3', open: false,
     code: `// src/plugins/deadfuse.js
-import DeadFuse from "dead-fuse";
+import DeadFuse from "@surelle-ha/dead-fuse";
 
 export default {
   install(app) {
@@ -281,7 +281,7 @@ export default {
   {
     name: 'Nuxt 3', open: false,
     code: `// plugins/deadfuse.client.ts
-import DeadFuse from "dead-fuse";
+import DeadFuse from "@surelle-ha/dead-fuse";
 
 export default defineNuxtPlugin(() => {
   const config = useRuntimeConfig();
@@ -298,7 +298,7 @@ export default defineNuxtPlugin(() => {
   {
     name: 'Plain HTML (CDN)', open: false,
     code: `<script type="module">
-  import DeadFuse from "https://esm.sh/dead-fuse";
+  import DeadFuse from "https://esm.sh/@surelle-ha/dead-fuse";
   DeadFuse.activate({
     projectId: "your-project-key",
     token: "your-public-token",

@@ -2,7 +2,7 @@ const express = require("express");
 const cors = require("cors");
 const path = require("path");
 
-const DeadFusePackage = require("dead-fuse");
+const DeadFusePackage = require("@surelle-ha/dead-fuse");
 const DeadFuse = DeadFusePackage.default || DeadFusePackage;
 
 const app = express();

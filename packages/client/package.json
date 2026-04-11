@@ -1,5 +1,5 @@
 {
-  "name": "dead-fuse",
+  "name": "@surelle-ha/dead-fuse",
   "version": "1.0.0",
   "description": "Lightweight license enforcement and remote control layer for deployed web applications",
   "main": "./dist/index.js",

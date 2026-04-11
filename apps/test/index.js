@@ -1,4 +1,4 @@
-const DeadFusePackage = require("dead-fuse");
+const DeadFusePackage = require("@surelle-ha/dead-fuse");
 const DeadFuse = DeadFusePackage.default || DeadFusePackage;
 
 async function testDeadFuse() {

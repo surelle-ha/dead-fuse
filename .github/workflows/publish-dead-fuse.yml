@@ -19,7 +19,7 @@ jobs:
         with:
           version: 9
       - run: pnpm install --frozen-lockfile
-      - run: pnpm --filter client build
+      - run: pnpm --filter @surelle-ha/dead-fuse build
 
   publish:
     name: Publish DeadFuse to npm
@@ -33,6 +33,6 @@ jobs:
         with:
           version: 9
       - run: pnpm install --frozen-lockfile
-      - run: pnpm --filter client build
+      - run: pnpm --filter @surelle-ha/dead-fuse build
       - run: npm config set //registry.npmjs.org/:_authToken ${{ secrets.NPM_TOKEN }}
-      - run: npm publish packages/client --access public
+      - run: npm publish ./packages/client --access public

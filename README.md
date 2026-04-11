@@ -127,15 +127,15 @@ If environment variables are missing, visiting the dashboard redirects to `/onbo
 ### Install
 
 ```bash
-npm install dead-fuse
+npm install @surelle-ha/dead-fuse
 # or
-pnpm add dead-fuse
+pnpm add @surelle-ha/dead-fuse
 ```
 
 ### Basic Usage
 
 ```js
-import DeadFuse from "dead-fuse";
+import DeadFuse from "@surelle-ha/dead-fuse";
 
 DeadFuse.activate({
   projectId: "your-project-key",
@@ -218,7 +218,7 @@ const state = DeadFuse.getState(); // "ACTIVE" | "READONLY" | ...
 ```jsx
 // src/main.jsx or src/App.jsx
 import { useEffect } from "react";
-import DeadFuse from "dead-fuse";
+import DeadFuse from "@surelle-ha/dead-fuse";
 
 export function useLicenseControl() {
   useEffect(() => {
@@ -252,7 +252,7 @@ export default function App() {
 // app/providers.tsx
 "use client";
 import { useEffect } from "react";
-import DeadFuse from "dead-fuse";
+import DeadFuse from "@surelle-ha/dead-fuse";
 
 export function FuseProvider({ children }) {
   useEffect(() => {
@@ -289,7 +289,7 @@ export default function RootLayout({ children }) {
 
 ```js
 // src/plugins/deadfuse.js
-import DeadFuse from "dead-fuse";
+import DeadFuse from "@surelle-ha/dead-fuse";
 
 export default {
   install(app) {
@@ -319,7 +319,7 @@ createApp(App).use(deadfusePlugin).mount("#app");
 
 ```js
 // plugins/deadfuse.client.ts
-import DeadFuse from "dead-fuse";
+import DeadFuse from "@surelle-ha/dead-fuse";
 
 export default defineNuxtPlugin(() => {
   const config = useRuntimeConfig();
@@ -343,7 +343,7 @@ export default defineNuxtPlugin(() => {
 <html>
 <head>
   <script type="module">
-    import DeadFuse from "https://esm.sh/dead-fuse";
+    import DeadFuse from "https://esm.sh/@surelle-ha/dead-fuse";
 
     DeadFuse.activate({
       projectId: "your-project-key",

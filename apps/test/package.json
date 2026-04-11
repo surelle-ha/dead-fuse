@@ -8,7 +8,7 @@
     "test": "node index.js"
   },
   "dependencies": {
-    "dead-fuse": "workspace:*",
+    "@surelle-ha/dead-fuse": "workspace:*",
     "express": "^4.18.2",
     "cors": "^2.8.5"
   }

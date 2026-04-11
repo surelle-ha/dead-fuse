@@ -3,8 +3,8 @@
   "private": true,
   "scripts": {
     "dev": "pnpm --filter dashboard dev",
-    "build": "pnpm --filter dead-fuse build && pnpm --filter dashboard build",
-    "build:client": "pnpm --filter dead-fuse build",
+    "build": "pnpm --filter @surelle-ha/dead-fuse build && pnpm --filter dashboard build",
+    "build:client": "pnpm --filter @surelle-ha/dead-fuse build",
     "build:dashboard": "pnpm --filter dashboard build",
     "build:prod": "pnpm build:client && pnpm --filter dashboard build:prod",
     "migrate": "pnpm --filter dashboard migrate",

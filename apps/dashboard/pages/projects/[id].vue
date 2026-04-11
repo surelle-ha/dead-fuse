@@ -287,7 +287,7 @@
 </template>
 
 <script setup lang="ts">
-import DeadFuse from 'dead-fuse'
+import DeadFuse from '@surelle-ha/dead-fuse'
 
 definePageMeta({ middleware: 'auth' })
 
@@ -463,7 +463,7 @@ async function pollClientStatus() {
 // ─── Snippet — SDK auto-configures Supabase via dashboard config endpoint ───
 const snippet = computed(() => {
   if (!project.value) return ''
-  return `import DeadFuse from "dead-fuse";
+  return `import DeadFuse from "@surelle-ha/dead-fuse";
 
 DeadFuse.activate({
   projectId: "${project.value.project_key}",
