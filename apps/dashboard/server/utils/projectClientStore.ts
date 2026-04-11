@@ -48,11 +48,22 @@ export function listClients(projectKey: string): Array<{ clientId: string; host?
   pruneStaleClients(projectKey);
   const clients = projectClientStore.get(projectKey);
   if (!clients) return [];
-  return Array.from(clients.entries()).map(([clientId, entry]) => ({
-    clientId,
-    host: entry.host,
-    lastSeen: entry.lastSeen,
-  }));
+
+  const uniqueByHost = new Map<string, { clientId: string; host?: string; lastSeen: number }>();
+  const others: Array<{ clientId: string; host?: string; lastSeen: number }> = [];
+
+  for (const [clientId, entry] of clients.entries()) {
+    if (entry.host) {
+      const existing = uniqueByHost.get(entry.host);
+      if (!existing || entry.lastSeen > existing.lastSeen) {
+        uniqueByHost.set(entry.host, { clientId, host: entry.host, lastSeen: entry.lastSeen });
+      }
+    } else {
+      others.push({ clientId, host: entry.host, lastSeen: entry.lastSeen });
+    }
+  }
+
+  return [...uniqueByHost.values(), ...others];
 }
 
 export function removeClient(projectKey: string, clientId: string): void {

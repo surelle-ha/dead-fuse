@@ -7,6 +7,22 @@ import { dispatchStateEvent } from "./events";
 const MAX_RECONNECT_ATTEMPTS = 10;
 const BASE_RECONNECT_DELAY = 1000;
 const CLIENT_HEARTBEAT_INTERVAL = 25_000;
+const CLIENT_ID_STORAGE_KEY = "dead-fuse-client-id";
+
+function getOrCreateClientId(): string {
+  if (typeof window !== "undefined" && typeof localStorage !== "undefined") {
+    const existing = localStorage.getItem(CLIENT_ID_STORAGE_KEY);
+    if (existing) return existing;
+    const id = `df-client-${
+      typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+        ? crypto.randomUUID()
+        : Math.random().toString(36).slice(2)
+    }`;
+    localStorage.setItem(CLIENT_ID_STORAGE_KEY, id);
+    return id;
+  }
+  return `df-client-${Math.random().toString(36).slice(2)}`;
+}
 
 /**
  * DeadFuseConnection uses Supabase Realtime broadcast channels for real-time
@@ -27,10 +43,7 @@ export class DeadFuseConnection {
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
   private heartbeatTimer: ReturnType<typeof setInterval> | null = null;
   private destroyed = false;
-  private clientId =
-    typeof crypto !== "undefined" && "randomUUID" in crypto
-      ? crypto.randomUUID()
-      : `df-client-${Math.random().toString(36).slice(2)}`;
+  private clientId = getOrCreateClientId();
 
   constructor(config: DeadFuseConfig) {
     this.config = config;
@@ -211,7 +224,7 @@ export class DeadFuseConnection {
         .select("state, message")
         .eq("project_key", this.config.projectId)
         .eq("public_token", this.config.token)
-        .single();
+        .maybeSingle();
 
       if (error || !data) {
         console.warn("[DeadFuse] Could not fetch initial state via Supabase:", error?.message);
