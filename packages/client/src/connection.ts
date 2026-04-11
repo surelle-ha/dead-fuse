@@ -1,5 +1,6 @@
 import { createClient, type SupabaseClient, type RealtimeChannel } from "@supabase/supabase-js";
 import type { DeadFuseConfig, StateMessage } from "./types";
+import { DEFAULT_MASTER } from "./constants";
 import { setCurrentState } from "./stateManager";
 import { dispatchStateEvent } from "./events";
 
@@ -48,7 +49,7 @@ export class DeadFuseConnection {
     let supabaseAnonKey = this.config.supabaseAnonKey;
 
     if (!supabaseUrl || !supabaseAnonKey) {
-      const masterUrl = this.config.master ?? (typeof window !== "undefined" ? window.location.origin : undefined);
+      const masterUrl = this.config.master ?? DEFAULT_MASTER;
       if (!masterUrl) {
         console.error(
           "[DeadFuse] Provide either `master` (dashboard URL) or both `supabaseUrl` + `supabaseAnonKey`."

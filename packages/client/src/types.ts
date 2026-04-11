@@ -17,6 +17,7 @@ export interface DeadFuseConfig {
    * e.g. "https://your-dashboard.vercel.app"
    * The SDK fetches configuration from `<master>/api/config` automatically.
    * Optional: provide this OR both (supabaseUrl + supabaseAnonKey).
+   * If omitted, the SDK will use the package default dashboard URL.
    */
   master?: string;
 

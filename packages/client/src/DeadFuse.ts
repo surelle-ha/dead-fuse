@@ -1,5 +1,6 @@
 import type { DeadFuseConfig, DeadFuseInstance, ProjectState } from "./types";
 import { DeadFuseConnection } from "./connection";
+import { DEFAULT_MASTER } from "./constants";
 import { getCurrentState, cleanupState } from "./stateManager";
 
 let activeConnection: DeadFuseConnection | null = null;
@@ -21,9 +22,7 @@ const DeadFuse: DeadFuseInstance = {
     const resolvedConfig = { ...config };
 
     if (!resolvedConfig.master && !hasExplicitSupabase) {
-      if (typeof window !== "undefined") {
-        resolvedConfig.master = window.location.origin;
-      }
+      resolvedConfig.master = DEFAULT_MASTER;
     }
 
     if (!resolvedConfig.master && !hasExplicitSupabase) {
