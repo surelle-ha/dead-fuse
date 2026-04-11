@@ -53,6 +53,21 @@
         </div>
       </div>
 
+      <div v-if="clientHosts.length > 0" class="panel">
+        <h2 class="panel-title">Connected Clients</h2>
+        <div class="space-y-3">
+          <div v-for="client in clientHosts" :key="client.clientId" class="border border-white/10 rounded-xl p-4 bg-fuse-black/80">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+              <div>
+                <p class="text-sm font-semibold text-fuse-text">{{ client.host || client.clientId }}</p>
+                <p class="text-xs text-fuse-dim">ID: {{ client.clientId }}</p>
+              </div>
+              <p class="text-xs text-fuse-green font-mono">Last seen {{ formatRelativeTime(client.lastSeen) }}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- Stats -->
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div class="stat-card">
@@ -304,6 +319,7 @@ const gracePeriod = ref(3)
 const copied = ref('')
 const wsConnected = ref(false)
 const connectedClients = ref(0)
+const clientHosts = ref<Array<{ clientId: string; host?: string; lastSeen: number }>>([])
 const statusMsg = ref<{ text: string; type: 'success' | 'error' } | null>(null)
 const logBox = ref<HTMLElement | null>(null)
 const showDeleteConfirm = ref(false)
@@ -451,12 +467,14 @@ onMounted(async () => {
 async function pollClientStatus() {
   if (!project.value || tester.activated) return
   try {
-    const res = await $fetch<{ connected: number }>(`/api/projects/${id}/clients`)
+    const res = await $fetch<{ connected: number; clients: Array<{ clientId: string; host?: string; lastSeen: number }> }>(`/api/projects/${id}/clients`)
     connectedClients.value = res.connected
+    clientHosts.value = res.clients ?? []
     wsConnected.value = res.connected > 0
   } catch {
     wsConnected.value = false
     connectedClients.value = 0
+    clientHosts.value = []
   }
 }
 
@@ -475,6 +493,17 @@ DeadFuse.activate({
   onLocked:   (msg) => { console.error(msg); },
 });`
 })
+
+function formatRelativeTime(timestamp: number) {
+  const diffMs = Date.now() - timestamp
+  const diffSec = Math.floor(diffMs / 1000)
+  if (diffSec < 10) return 'just now'
+  if (diffSec < 60) return `${diffSec}s ago`
+  const diffMin = Math.floor(diffSec / 60)
+  if (diffMin < 60) return `${diffMin}m ago`
+  const diffHour = Math.floor(diffMin / 60)
+  return `${diffHour}h ago`
+}
 
 function stateColor(state: string) {
   const map: Record<string, string> = {

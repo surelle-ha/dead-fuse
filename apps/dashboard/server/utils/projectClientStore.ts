@@ -1,4 +1,5 @@
 type ClientEntry = {
+  host?: string;
   lastSeen: number;
 };
 
@@ -30,9 +31,9 @@ function getProjectClients(projectKey: string): Map<string, ClientEntry> {
   return clients;
 }
 
-export function registerClient(projectKey: string, clientId: string): void {
+export function registerClient(projectKey: string, clientId: string, host?: string): void {
   const clients = getProjectClients(projectKey);
-  clients.set(clientId, { lastSeen: Date.now() });
+  clients.set(clientId, { host, lastSeen: Date.now() });
 }
 
 export function heartbeatClient(projectKey: string, clientId: string): void {
@@ -41,6 +42,17 @@ export function heartbeatClient(projectKey: string, clientId: string): void {
   const entry = clients.get(clientId);
   if (!entry) return;
   entry.lastSeen = Date.now();
+}
+
+export function listClients(projectKey: string): Array<{ clientId: string; host?: string; lastSeen: number }> {
+  pruneStaleClients(projectKey);
+  const clients = projectClientStore.get(projectKey);
+  if (!clients) return [];
+  return Array.from(clients.entries()).map(([clientId, entry]) => ({
+    clientId,
+    host: entry.host,
+    lastSeen: entry.lastSeen,
+  }));
 }
 
 export function removeClient(projectKey: string, clientId: string): void {

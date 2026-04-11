@@ -98,6 +98,7 @@ export class DeadFuseConnection {
     if (!masterUrl || !this.config.token) return;
 
     try {
+      const clientHost = typeof window !== "undefined" ? window.location.origin : undefined;
       const res = await fetch(
         `${masterUrl.replace(/\/$/, "")}/api/project/${encodeURIComponent(
           this.config.projectId
@@ -105,7 +106,7 @@ export class DeadFuseConnection {
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ token: this.config.token, clientId: this.clientId }),
+          body: JSON.stringify({ token: this.config.token, clientId: this.clientId, host: clientHost }),
         }
       );
 

@@ -1,7 +1,7 @@
 import { requireAuth } from "~/server/utils/auth";
 import { useSupabaseAdmin } from "~/server/utils/supabase";
 import { hasDeletedAtColumn } from "../utils";
-import { countClients } from "~/server/utils/projectClientStore";
+import { countClients, listClients } from "~/server/utils/projectClientStore";
 
 export default defineEventHandler(async (event: any) => {
   const auth = requireAuth(event);
@@ -28,6 +28,7 @@ export default defineEventHandler(async (event: any) => {
   }
 
   const connected = countClients(project.project_key);
+  const clients = listClients(project.project_key);
 
-  return { connected };
+  return { connected, clients };
 });
