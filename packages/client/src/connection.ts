@@ -100,6 +100,11 @@ export class DeadFuseConnection {
 
     this.supabase = createClient(supabaseUrl, supabaseAnonKey, {
       realtime: { params: { eventsPerSecond: 2 } },
+      auth: {
+        persistSession: false,
+        detectSessionInUrl: false,
+        autoRefreshToken: false,
+      },
     });
 
     this._subscribe();
@@ -227,7 +232,12 @@ export class DeadFuseConnection {
         .maybeSingle();
 
       if (error || !data) {
-        console.warn("[DeadFuse] Could not fetch initial state via Supabase:", error?.message);
+        console.warn(
+          "[DeadFuse] Could not fetch initial state via Supabase:",
+          error ?? "no error object",
+          "data:",
+          data
+        );
 
         const fallback = await tryDashboardFallback();
         if (fallback) {
