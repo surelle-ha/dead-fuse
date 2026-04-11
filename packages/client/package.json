@@ -1,6 +1,6 @@
 {
   "name": "@surelle-ha/dead-fuse",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "Lightweight license enforcement and remote control layer for deployed web applications",
   "publishConfig": {
     "access": "public"
