@@ -1,9 +1,9 @@
 import { requireAuth } from "~/server/utils/auth";
 import { useSupabaseAdmin } from "~/server/utils/supabase";
 import { hasDeletedAtColumn } from "../utils";
-import { projectSockets } from "./state.post";
+import { countClients } from "~/server/utils/projectClientStore";
 
-export default defineEventHandler(async (event) => {
+export default defineEventHandler(async (event: any) => {
   const auth = requireAuth(event);
   const id = getRouterParam(event, "id");
   const sb = useSupabaseAdmin();
@@ -27,8 +27,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 404, statusMessage: "Project not found" });
   }
 
-  const sockets = projectSockets.get(project.project_key);
-  const connected = sockets ? sockets.size : 0;
+  const connected = countClients(project.project_key);
 
   return { connected };
 });

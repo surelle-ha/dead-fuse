@@ -2,15 +2,12 @@ import { requireAuth } from "~/server/utils/auth";
 import { useSupabaseAdmin } from "~/server/utils/supabase";
 import { hasDeletedAtColumn } from "../utils";
 
-// Track active WebSocket connections per project (optional, can be used for analytics)
-export const projectSockets = new Map<string, Set<string>>();
-
 const VALID_STATES = [
   "ACTIVE", "WARNING", "READONLY", "LIMITED",
   "LOCKED", "EXPIRED", "SLEEP", "SELF_DESTRUCT",
 ];
 
-export default defineEventHandler(async (event) => {
+export default defineEventHandler(async (event: any) => {
   const user = await requireAuth(event);
   const id = getRouterParam(event, "id");
   const body = await readBody(event);

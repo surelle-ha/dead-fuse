@@ -139,7 +139,7 @@ import DeadFuse from "@surelle-ha/dead-fuse";
 
 DeadFuse.activate({
   projectId: "your-project-key",
-  master: "wss://your-host.com/fuse",
+  master: "https://your-dashboard.example.com",
   token: "your-public-token",
   fallbackMode: "readonly",
   gracePeriod: 3,
@@ -347,7 +347,7 @@ export default defineNuxtPlugin(() => {
 
     DeadFuse.activate({
       projectId: "your-project-key",
-      master: "wss://your-host.com/fuse",
+      master: "https://your-dashboard.example.com",
       token: "your-public-token",
       onLocked: (msg) => {
         document.body.innerHTML = `<h1>${msg}</h1>`;

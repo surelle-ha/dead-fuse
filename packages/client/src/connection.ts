@@ -1,11 +1,12 @@
 import { createClient, type SupabaseClient, type RealtimeChannel } from "@supabase/supabase-js";
-import type { DeadFuseConfig, StateMessage } from "./types";
+import type { DeadFuseConfig, ProjectState, StateMessage } from "./types";
 import { DEFAULT_MASTER } from "./constants";
 import { setCurrentState } from "./stateManager";
 import { dispatchStateEvent } from "./events";
 
 const MAX_RECONNECT_ATTEMPTS = 10;
 const BASE_RECONNECT_DELAY = 1000;
+const CLIENT_HEARTBEAT_INTERVAL = 25_000;
 
 /**
  * DeadFuseConnection uses Supabase Realtime broadcast channels for real-time
@@ -24,7 +25,12 @@ export class DeadFuseConnection {
   private config: DeadFuseConfig;
   private reconnectAttempts = 0;
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+  private heartbeatTimer: ReturnType<typeof setInterval> | null = null;
   private destroyed = false;
+  private clientId =
+    typeof crypto !== "undefined" && "randomUUID" in crypto
+      ? crypto.randomUUID()
+      : `df-client-${Math.random().toString(36).slice(2)}`;
 
   constructor(config: DeadFuseConfig) {
     this.config = config;
@@ -65,7 +71,12 @@ export class DeadFuseConnection {
         supabaseUrl = json.supabaseUrl;
         supabaseAnonKey = json.supabaseAnonKey;
       } catch (err) {
-        console.warn("[DeadFuse] Could not fetch config from dashboard:", err);
+        console.warn("[DeadFuse] Could not fetch config from dashboard:", err, "master:", masterUrl);
+        if (masterUrl.startsWith("wss://")) {
+          console.warn(
+            "[DeadFuse] The `master` value appears to be a websocket URL. `master` must be the dashboard base URL like https://your-dashboard.example.com"
+          );
+        }
         this._applyFallback();
         this._scheduleReconnect();
         return;
@@ -80,6 +91,54 @@ export class DeadFuseConnection {
 
     this._subscribe();
     this._fetchInitialState();
+  }
+
+  private async _registerClient(): Promise<void> {
+    const masterUrl = this.config.master ?? DEFAULT_MASTER;
+    if (!masterUrl || !this.config.token) return;
+
+    try {
+      const res = await fetch(
+        `${masterUrl.replace(/\/$/, "")}/api/project/${encodeURIComponent(
+          this.config.projectId
+        )}/clients/connect`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ token: this.config.token, clientId: this.clientId }),
+        }
+      );
+
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      if (!this.heartbeatTimer) {
+        this.heartbeatTimer = setInterval(() => {
+          if (this.destroyed) return;
+          void this._registerClient();
+        }, CLIENT_HEARTBEAT_INTERVAL);
+      }
+    } catch (err) {
+      console.warn("[DeadFuse] Could not register client with dashboard:", err);
+    }
+  }
+
+  private async _unregisterClient(): Promise<void> {
+    const masterUrl = this.config.master ?? DEFAULT_MASTER;
+    if (!masterUrl || !this.config.token) return;
+
+    try {
+      await fetch(
+        `${masterUrl.replace(/\/$/, "")}/api/project/${encodeURIComponent(
+          this.config.projectId
+        )}/clients/disconnect`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ token: this.config.token, clientId: this.clientId }),
+        }
+      );
+    } catch {
+      // Best-effort cleanup only.
+    }
   }
 
   // ── Realtime subscription ──────────────────────────────────────────────────
@@ -104,6 +163,7 @@ export class DeadFuseConnection {
           this.reconnectAttempts = 0;
           // Register presence so the dashboard client-count endpoint can see us
           this.channel?.track({ projectId: this.config.projectId, ts: Date.now() });
+          void this._registerClient();
         }
 
         if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
@@ -126,7 +186,7 @@ export class DeadFuseConnection {
   private async _fetchInitialState(): Promise<void> {
     if (!this.supabase) return;
 
-    const tryDashboardFallback = async () => {
+    const tryDashboardFallback = async (): Promise<{ state: ProjectState; message?: string } | null> => {
       const masterUrl = this.config.master ?? (typeof window !== "undefined" ? window.location.origin : undefined);
       if (!masterUrl) return null;
 
@@ -137,7 +197,7 @@ export class DeadFuseConnection {
           )}`
         );
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        return await res.json() as { state: string; message?: string };
+        return (await res.json()) as { state: ProjectState; message?: string };
       } catch (err) {
         console.warn("[DeadFuse] Dashboard initial-state fallback failed:", err);
         return null;
@@ -216,6 +276,8 @@ export class DeadFuseConnection {
   destroy(): void {
     this.destroyed = true;
     if (this.reconnectTimer) { clearTimeout(this.reconnectTimer); this.reconnectTimer = null; }
+    if (this.heartbeatTimer) { clearInterval(this.heartbeatTimer); this.heartbeatTimer = null; }
+    void this._unregisterClient();
     if (this.channel && this.supabase) { this.supabase.removeChannel(this.channel); this.channel = null; }
   }
 }
