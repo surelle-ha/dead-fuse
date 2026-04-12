@@ -1,291 +1,314 @@
 <template>
   <div class="min-h-screen bg-fuse-black">
-    <!-- Nav -->
-    <nav class="border-b border-fuse-border/60 px-6 py-4 flex items-center justify-between backdrop-blur-sm bg-fuse-black/80 sticky top-0 z-10">
-      <div class="flex items-center gap-3">
-        <button @click="navigateTo('/projects')" class="text-fuse-dim hover:text-fuse-text transition-colors text-sm flex items-center gap-1.5">
-          <span>←</span> <span>Projects</span>
-        </button>
-        <span class="text-fuse-border">/</span>
-        <span class="text-fuse-text font-medium text-sm">{{ project?.name }}</span>
-      </div>
-      <div class="flex items-center gap-3">
-        <!-- Connection status pill -->
-        <div class="connection-pill" :class="wsConnected ? 'connection-pill--connected' : 'connection-pill--offline'">
-          <span class="connection-dot" :class="wsConnected ? 'connection-dot--connected' : 'connection-dot--offline'" />
-          <span v-if="wsConnected" class="font-mono text-xs">
-            {{ connectedClients }} {{ connectedClients === 1 ? 'client' : 'clients' }} connected
-          </span>
-          <span v-else class="font-mono text-xs">No clients connected</span>
-        </div>
-      </div>
-    </nav>
+    <main v-if="project" class="max-w-6xl mx-auto px-6 py-8 animate-slide-up">
 
-    <main v-if="project" class="max-w-6xl mx-auto px-6 py-10 animate-slide-up grid gap-8 lg:grid-cols-[minmax(0,1fr)_360px]">
-      <div class="space-y-6">
-        <!-- Project header -->
-      <div class="flex items-start justify-between">
-        <div>
-          <h1 class="text-2xl font-bold text-fuse-text">{{ project.name }}</h1>
-          <p class="text-fuse-dim text-sm mt-1 font-mono">{{ project.project_key }}</p>
-        </div>
-        <StatusBadge :state="project.state" size="lg" />
-      </div>
-
-      <!-- Client connection banner -->
-      <div class="client-status-banner" :class="wsConnected ? 'client-status-banner--ok' : 'client-status-banner--warn'">
+      <!-- Page header -->
+      <div class="flex items-start justify-between mb-6">
         <div class="flex items-center gap-3">
-          <span class="text-lg">{{ wsConnected ? '🟢' : '🔴' }}</span>
-          <div>
-            <p class="text-sm font-bold" :class="wsConnected ? 'text-fuse-green' : 'text-fuse-red'">
-              {{ wsConnected ? `${connectedClients} client instance${connectedClients === 1 ? '' : 's'} connected` : 'No SDK clients connected' }}
+          <button @click="navigateTo('/projects')" class="text-fuse-muted hover:text-fuse-text transition-colors text-xs font-mono">← Back</button>
+          <span class="text-white/10">/</span>
+          <h1 class="text-sm font-bold text-fuse-text">{{ project.name }}</h1>
+          <StatusBadge :state="project.state" size="sm" />
+        </div>
+      </div>
+
+      <div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
+
+        <!-- ── Left column ──────────────────────────────────────── -->
+        <div class="space-y-5">
+
+          <!-- Stats -->
+          <div class="grid grid-cols-3 gap-3">
+            <div class="stat-card">
+              <span class="stat-label">State</span>
+              <span class="stat-value" :class="stateColor(project.state)">{{ project.state }}</span>
+            </div>
+            <div class="stat-card">
+              <span class="stat-label">Grace period</span>
+              <span class="stat-value">{{ project.grace_period }}d</span>
+            </div>
+            <div class="stat-card">
+              <span class="stat-label">Instances</span>
+              <span class="stat-value">{{ instances.length }}</span>
+            </div>
+          </div>
+
+          <!-- State control -->
+          <div class="panel">
+            <h2 class="panel-title">State control</h2>
+            <p class="text-fuse-muted text-[10px] mb-4 leading-relaxed">
+              Changing state broadcasts to <strong class="text-fuse-dim">all instances</strong> of this project simultaneously.
             </p>
-            <p class="text-xs text-fuse-dim mt-0.5">
-              {{ wsConnected
-                ? 'State changes will broadcast instantly to all connected clients.'
-                : 'Deploy the dead-fuse SDK in your client app to start monitoring. See the Integration section below.' }}
+            <StateToggle :current="project.state" @change="updateState" :loading="stateLoading" />
+          </div>
+
+          <!-- Client message -->
+          <div class="panel">
+            <h2 class="panel-title">Client message</h2>
+            <p class="text-fuse-dim text-xs mb-3">Broadcast to all instances in WARNING and LOCKED states.</p>
+            <div class="flex gap-2">
+              <input v-model="message" type="text" class="field-input flex-1 text-xs" placeholder="Invoice overdue. Please contact support." />
+              <button @click="updateMessage" :disabled="msgLoading" class="btn-secondary text-xs px-3">{{ msgLoading ? '…' : 'Save' }}</button>
+            </div>
+          </div>
+
+          <!-- Grace period -->
+          <div class="panel">
+            <h2 class="panel-title">Grace period</h2>
+            <p class="text-fuse-dim text-xs mb-3">Days before restrictions apply after a state change.</p>
+            <div class="flex gap-2 items-center">
+              <input v-model.number="gracePeriod" type="number" min="0" max="365" class="field-input w-24 text-xs" />
+              <span class="text-fuse-muted text-xs">days</span>
+              <button @click="updateGracePeriod" :disabled="graceLoading" class="btn-secondary text-xs px-3 ml-auto">{{ graceLoading ? '…' : 'Update' }}</button>
+            </div>
+          </div>
+
+          <!-- ── Instances ─────────────────────────────────────── -->
+          <div class="panel">
+            <div class="flex items-center justify-between mb-1">
+              <h2 class="panel-title mb-0">Instances</h2>
+              <button @click="showAddInstance = true" class="btn-ghost text-xs flex items-center gap-1.5">
+                <Plus class="w-3 h-3" /> Add instance
+              </button>
+            </div>
+            <p class="text-fuse-muted text-[10px] mb-4 leading-relaxed">
+              Each instance is a deployment environment with its own SDK token. All instances share this project's state.
             </p>
-          </div>
-        </div>
-        <div v-if="wsConnected" class="text-right hidden sm:block">
-          <p class="text-xs text-fuse-dim font-mono">Last seen</p>
-          <p class="text-xs text-fuse-green font-mono">just now</p>
-        </div>
-      </div>
 
-      <div v-if="clientHosts.length > 0" class="panel">
-        <h2 class="panel-title">Connected Clients</h2>
-        <div class="space-y-3">
-          <div v-for="client in clientHosts" :key="client.clientId" class="border border-white/10 rounded-xl p-4 bg-fuse-black/80">
-            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-              <div>
-                <p class="text-sm font-semibold text-fuse-text">{{ client.host || client.clientId }}</p>
-                <p class="text-xs text-fuse-dim">ID: {{ client.clientId }}</p>
+            <!-- Loading -->
+            <div v-if="instancesLoading" class="space-y-2">
+              <div v-for="i in 2" :key="i" class="h-24 rounded-xl animate-pulse bg-white/[0.02] border border-white/[0.04]" />
+            </div>
+
+            <!-- Empty -->
+            <div v-else-if="instances.length === 0" class="rounded-xl border border-dashed border-white/[0.08] py-10 text-center">
+              <div class="w-8 h-8 rounded-lg bg-white/[0.04] border border-white/[0.07] flex items-center justify-center mx-auto mb-3">
+                <Server class="w-4 h-4 text-fuse-muted" />
               </div>
-              <p class="text-xs text-fuse-green font-mono">Last seen {{ formatRelativeTime(client.lastSeen) }}</p>
+              <p class="text-fuse-dim text-xs font-medium mb-1">No instances yet</p>
+              <p class="text-fuse-muted text-[10px] max-w-xs mx-auto">Add a dev, staging, or prod instance. Each gets its own SDK token.</p>
+              <button @click="showAddInstance = true" class="mt-4 btn-primary text-xs px-4">Add first instance</button>
             </div>
-          </div>
-        </div>
-      </div>
 
-      <!-- Stats -->
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div class="stat-card">
-          <span class="stat-label">Current State</span>
-          <span class="stat-value" :class="stateColor(project.state)">{{ project.state }}</span>
-        </div>
-        <div class="stat-card">
-          <span class="stat-label">Grace Period</span>
-          <span class="stat-value">{{ project.grace_period }} days</span>
-        </div>
-        <div class="stat-card">
-          <span class="stat-label">Last Updated</span>
-          <span class="stat-value text-sm">{{ formatDate(project.updated_at) }}</span>
-        </div>
-      </div>
+            <!-- List -->
+            <div v-else class="space-y-2.5">
+              <div
+                v-for="inst in instances"
+                :key="inst.id"
+                class="instance-card"
+                :class="inst.alert ? 'instance-card--alert' : ''"
+              >
+                <!-- Header row -->
+                <div class="flex items-center justify-between gap-3 mb-3">
+                  <div class="flex items-center gap-2.5 min-w-0">
+                    <span class="env-badge" :class="envBadgeClass(inst.env)">{{ inst.env }}</span>
+                    <span class="text-xs font-semibold text-fuse-text truncate">{{ inst.label }}</span>
+                    <div v-if="inst.alert" class="flex items-center gap-1 text-[9px] font-mono text-fuse-red bg-fuse-red/[0.08] border border-fuse-red/20 px-1.5 py-0.5 rounded-full">
+                      <span class="w-1 h-1 rounded-full bg-fuse-red inline-block" />
+                      SDK removed?
+                    </div>
+                  </div>
+                  <div class="flex items-center gap-1 flex-shrink-0">
+                    <button @click="copyToken(inst.token)" class="icon-btn" title="Copy token"><Copy class="w-3 h-3" /></button>
+                    <button
+                      @click="openTester(inst)"
+                      class="icon-btn" title="Test this instance"
+                    ><FlaskConical class="w-3 h-3" /></button>
+                    <button @click="confirmRemoveInstance(inst)" class="icon-btn hover:!text-fuse-red" title="Remove"><Trash2 class="w-3 h-3" /></button>
+                  </div>
+                </div>
 
-      <!-- Project Metadata -->
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div v-if="project.client_name" class="stat-card">
-          <span class="stat-label">Client</span>
-          <span class="stat-value">{{ project.client_name }}</span>
-        </div>
-        <div v-if="project.target_completion" class="stat-card">
-          <span class="stat-label">Target Completion</span>
-          <span class="stat-value">{{ formatDate(project.target_completion) }}</span>
-        </div>
-        <div v-if="project.budget" class="stat-card">
-          <span class="stat-label">Budget</span>
-          <span class="stat-value">{{ project.budget }}</span>
-        </div>
-        <div v-if="project.priority" class="stat-card">
-          <span class="stat-label">Priority</span>
-          <span class="stat-value capitalize">{{ project.priority }}</span>
-        </div>
-      </div>
-      <div v-if="project.description" class="panel">
-        <h2 class="panel-title">Description</h2>
-        <p class="text-fuse-dim text-sm">{{ project.description }}</p>
-      </div>
+                <!-- Token -->
+                <div class="flex items-center gap-2 bg-black/20 border border-white/[0.05] rounded-lg px-2.5 py-1.5 mb-3">
+                  <code class="text-[10px] font-mono text-fuse-muted flex-1 truncate">{{ inst.token }}</code>
+                  <button @click="copyToken(inst.token)" class="text-[9px] font-mono text-fuse-muted hover:text-fuse-dim border border-white/[0.06] rounded px-1.5 py-0.5 flex-shrink-0 transition-colors">Copy</button>
+                </div>
 
-      <!-- State controls -->
-      <div class="panel">
-        <h2 class="panel-title">State Control</h2>
-        <StateToggle :current="project.state" @change="updateState" :loading="stateLoading" />
-      </div>
+                <!-- Monitoring toggle -->
+                <div class="flex items-start justify-between gap-4 pt-2.5 border-t border-white/[0.05]">
+                  <div class="min-w-0">
+                    <p class="text-[10px] font-medium text-fuse-dim">Deployed instance monitoring</p>
+                    <p class="text-[9px] text-fuse-muted mt-0.5 leading-relaxed">
+                      When enabled, DeadFuse pings this instance. If uptime pings arrive but no SDK heartbeat, you'll be alerted the SDK may have been removed.
+                    </p>
+                  </div>
+                  <button
+                    @click="toggleDeployed(inst)"
+                    class="toggle-track flex-shrink-0 mt-0.5"
+                    :class="inst.deployed ? 'toggle-on' : 'toggle-off'"
+                    role="switch"
+                    :aria-checked="inst.deployed"
+                  >
+                    <span class="toggle-thumb" :style="inst.deployed ? 'transform:translateX(18px)' : 'transform:translateX(2px)'" />
+                  </button>
+                </div>
 
-      <!-- Message -->
-      <div class="panel">
-        <h2 class="panel-title">Client Message</h2>
-        <p class="text-fuse-dim text-xs mb-3">This message is sent to clients and shown in WARNING and LOCKED states.</p>
-        <div class="flex gap-3">
-          <input v-model="message" type="text" class="field-input flex-1" placeholder="Invoice overdue. Please contact support." />
-          <button @click="updateMessage" :disabled="msgLoading" class="btn-secondary">
-            {{ msgLoading ? 'Saving…' : 'Save' }}
-          </button>
-        </div>
-      </div>
-
-      <!-- Grace period -->
-      <div class="panel">
-        <h2 class="panel-title">Grace Period</h2>
-        <p class="text-fuse-dim text-xs mb-3">Number of days before restrictions are enforced after a state change.</p>
-        <div class="flex gap-3 items-center">
-          <input v-model.number="gracePeriod" type="number" min="0" max="365" class="field-input w-28" />
-          <span class="text-fuse-dim text-sm">days</span>
-          <button @click="updateGracePeriod" :disabled="graceLoading" class="btn-secondary ml-auto">
-            {{ graceLoading ? 'Saving…' : 'Update' }}
-          </button>
-        </div>
-      </div>
-
-      <!-- ── Internal Tester ──────────────────────────────────────────── -->
-      <div class="panel">
-        <div class="flex items-center justify-between mb-1">
-          <h2 class="panel-title mb-0">Internal Tester</h2>
-          <span class="text-xs font-mono px-2 py-0.5 rounded-full border"
-            :class="tester.activated
-              ? 'text-fuse-green border-fuse-green/30 bg-fuse-green/10'
-              : 'text-fuse-dim border-fuse-border bg-fuse-zinc'">
-            {{ tester.activated ? 'SDK Active' : 'SDK Inactive' }}
-          </span>
-        </div>
-        <p class="text-fuse-dim text-xs mb-4">
-          Simulate a connected client directly in this browser tab. The SDK will subscribe to your project and react to state changes instantly.
-        </p>
-
-        <!-- Activate / Deactivate -->
-        <div class="flex gap-3 mb-5">
-          <button
-            @click="testerActivate"
-            :disabled="tester.activated || tester.loading"
-            class="btn-tester-activate flex-1"
-          >
-            {{ tester.loading ? 'Connecting…' : 'Activate SDK' }}
-          </button>
-          <button
-            @click="testerDeactivate"
-            :disabled="!tester.activated"
-            class="btn-secondary flex-1"
-          >
-            Deactivate SDK
-          </button>
-        </div>
-
-        <!-- Live state display -->
-        <div class="grid grid-cols-2 gap-3 mb-4">
-          <div class="tester-stat">
-            <span class="tester-stat-label">SDK State</span>
-            <span class="font-mono font-bold text-sm" :class="testerStateColor">
-              {{ tester.state ?? '—' }}
-            </span>
-          </div>
-          <div class="tester-stat">
-            <span class="tester-stat-label">Last Message</span>
-            <span class="font-mono text-xs text-fuse-dim truncate">{{ tester.lastMessage || '—' }}</span>
-          </div>
-        </div>
-
-        <!-- Event log -->
-        <div>
-          <div class="flex items-center justify-between mb-1.5">
-            <span class="text-xs font-mono text-fuse-dim uppercase tracking-widest">Event Log</span>
-            <button @click="tester.logs = []" class="text-xs text-fuse-dim hover:text-fuse-text font-mono transition-colors">Clear</button>
-          </div>
-          <div class="tester-log-box" ref="logBox">
-            <div v-if="tester.logs.length === 0" class="text-fuse-muted text-xs font-mono py-2 text-center">
-              No events yet — activate the SDK to start.
-            </div>
-            <div
-              v-for="(entry, i) in tester.logs"
-              :key="i"
-              class="tester-log-row text-fuse-dim"
-            >
-              <span class="opacity-50 flex-shrink-0">{{ entry.time }}</span>
-              <span class="font-bold uppercase w-24 flex-shrink-0">[{{ entry.type }}]</span>
-              <span class="truncate">{{ entry.msg }}</span>
-            </div>
-          </div>
-        </div>
-      </div>
-      <!-- ── /Internal Tester ─────────────────────────────────────────── -->
-      </div>
-
-      <aside class="space-y-6">
-        <div class="panel">
-          <h2 class="panel-title">Integration</h2>
-          <div class="space-y-4">
-            <div>
-              <label class="field-label">Project ID (projectId)</label>
-              <div class="token-row">
-                <code class="text-fuse-text text-xs flex-1 truncate">{{ project.project_key }}</code>
-                <button @click="copy(project.project_key, 'key')" class="copy-btn">
-                  {{ copied === 'key' ? 'Copied' : 'Copy' }}
-                </button>
-              </div>
-            </div>
-            <div>
-              <label class="field-label">Public Token (token)</label>
-              <div class="token-row">
-                <code class="text-fuse-text text-xs flex-1 truncate">{{ project.public_token }}</code>
-                <button @click="copy(project.public_token, 'token')" class="copy-btn">
-                  {{ copied === 'token' ? 'Copied' : 'Copy' }}
-                </button>
+                <!-- Ping status -->
+                <div v-if="inst.deployed" class="mt-2.5 grid grid-cols-2 gap-2">
+                  <div class="flex items-center gap-1.5 bg-black/20 rounded-lg px-2.5 py-1.5">
+                    <span class="w-1.5 h-1.5 rounded-full flex-shrink-0" :class="inst.uptime_ping ? 'bg-fuse-green' : 'bg-white/20'" />
+                    <div>
+                      <p class="text-[9px] font-mono text-fuse-muted">Uptime ping</p>
+                      <p class="text-[10px] font-mono" :class="inst.uptime_ping ? 'text-fuse-green' : 'text-fuse-muted'">{{ inst.uptime_ping ? 'Receiving' : 'No signal' }}</p>
+                    </div>
+                  </div>
+                  <div class="flex items-center gap-1.5 bg-black/20 rounded-lg px-2.5 py-1.5">
+                    <span class="w-1.5 h-1.5 rounded-full flex-shrink-0" :class="inst.sdk_ping ? 'bg-fuse-blue' : 'bg-white/20'" />
+                    <div>
+                      <p class="text-[9px] font-mono text-fuse-muted">SDK heartbeat</p>
+                      <p class="text-[10px] font-mono" :class="inst.sdk_ping ? 'text-fuse-blue' : 'text-fuse-muted'">{{ inst.sdk_ping ? 'Active' : 'No signal' }}</p>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
+
+          <!-- Project details -->
+          <div v-if="project.client_name || project.description || project.budget || project.priority" class="panel">
+            <h2 class="panel-title">Project details</h2>
+            <div class="grid grid-cols-2 gap-3 mb-3">
+              <div v-if="project.client_name" class="detail-row"><span class="detail-label">Client</span><span class="detail-value">{{ project.client_name }}</span></div>
+              <div v-if="project.priority"    class="detail-row"><span class="detail-label">Priority</span><span class="detail-value capitalize">{{ project.priority }}</span></div>
+              <div v-if="project.budget"      class="detail-row"><span class="detail-label">Budget</span><span class="detail-value">{{ project.budget }}</span></div>
+              <div v-if="project.target_completion" class="detail-row"><span class="detail-label">Deadline</span><span class="detail-value">{{ formatDate(project.target_completion) }}</span></div>
+            </div>
+            <p v-if="project.description" class="text-xs text-fuse-dim">{{ project.description }}</p>
+          </div>
         </div>
 
-        <div class="panel">
-          <h2 class="panel-title">Usage Snippet</h2>
-          <p class="text-fuse-dim text-xs mb-3">
-            Copy the minimal SDK integration snippet and paste it into your client application.
-          </p>
-          <div class="bg-fuse-zinc border border-fuse-border rounded-lg p-4 relative">
-            <button @click="copy(snippet, 'snippet')" class="copy-btn absolute top-3 right-3">
-              {{ copied === 'snippet' ? 'Copied' : 'Copy' }}
+        <!-- ── Right column ─────────────────────────────────────── -->
+        <aside class="space-y-5">
+
+          <!-- Live clients -->
+          <div class="panel">
+            <div class="flex items-center gap-2 mb-2">
+              <span class="w-1.5 h-1.5 rounded-full flex-shrink-0" :class="wsConnected ? 'bg-fuse-green animate-pulse' : 'bg-fuse-muted'" />
+              <h2 class="panel-title mb-0">{{ wsConnected ? `${connectedClients} client${connectedClients !== 1 ? 's' : ''} live` : 'No clients live' }}</h2>
+            </div>
+            <p class="text-fuse-muted text-[10px] leading-relaxed mb-3">
+              {{ wsConnected ? 'State changes broadcast instantly.' : 'No SDK connections detected. Add an instance and deploy the SDK.' }}
+            </p>
+            <div v-if="clientHosts.length > 0" class="space-y-1">
+              <div v-for="c in clientHosts" :key="c.clientId" class="flex items-center justify-between text-[10px] font-mono py-1 border-b border-white/[0.04] last:border-0">
+                <span class="text-fuse-dim truncate">{{ c.host || c.clientId }}</span>
+                <span class="text-fuse-muted flex-shrink-0 ml-2">{{ relTime(c.lastSeen) }}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Project ID -->
+          <div class="panel">
+            <h2 class="panel-title">Project ID</h2>
+            <p class="text-fuse-muted text-[10px] mb-3 leading-relaxed">
+              Use as <code class="text-fuse-dim">projectId</code> in the SDK. Each instance provides its own <code class="text-fuse-dim">token</code>.
+            </p>
+            <div class="token-row">
+              <code class="text-fuse-text text-[10px] flex-1 truncate font-mono">{{ project.project_key }}</code>
+              <button @click="copy(project.project_key, 'key')" class="copy-btn">{{ copied === 'key' ? '✓' : 'Copy' }}</button>
+            </div>
+          </div>
+
+          <!-- Snippet -->
+          <div class="panel">
+            <h2 class="panel-title">Usage snippet</h2>
+            <div v-if="instances.length === 0" class="text-center py-4">
+              <p class="text-fuse-muted text-[10px]">Add an instance to generate a snippet.</p>
+            </div>
+            <div v-else>
+              <div class="flex items-center gap-2 mb-2">
+                <label class="text-[9px] font-mono text-fuse-muted uppercase tracking-widest flex-shrink-0">Instance</label>
+                <select v-model="snippetId" class="mini-select flex-1">
+                  <option v-for="i in instances" :key="i.id" :value="i.id">{{ i.label }} ({{ i.env }})</option>
+                </select>
+              </div>
+              <div class="code-block relative">
+                <button @click="copy(snippet, 'snippet')" class="copy-btn absolute top-2 right-2">{{ copied === 'snippet' ? '✓' : 'Copy' }}</button>
+                <pre class="text-[10px] text-fuse-dim font-mono p-3 overflow-x-auto whitespace-pre pr-12 leading-relaxed">{{ snippet }}</pre>
+              </div>
+            </div>
+          </div>
+
+          <!-- Danger zone -->
+          <div class="panel" style="border-color:rgba(255,51,51,0.1);background:rgba(255,51,51,0.02);">
+            <h2 class="panel-title text-fuse-red/60">Danger zone</h2>
+            <p class="text-fuse-dim text-[10px] mb-3 leading-relaxed">Soft-deletes this project and all its instances.</p>
+            <button @click="showDeleteConfirm = true" class="w-full text-xs bg-fuse-red/[0.08] hover:bg-fuse-red/[0.15] text-fuse-red border border-fuse-red/20 px-4 py-2 rounded-lg font-medium transition-colors">
+              Delete project
             </button>
-            <pre class="text-xs text-fuse-dim overflow-x-auto whitespace-pre pr-16">{{ snippet }}</pre>
           </div>
-        </div>
-
-        <div class="panel border-red-500/20 bg-red-500/5">
-          <h2 class="panel-title text-fuse-red">Danger Zone</h2>
-          <p class="text-fuse-dim text-xs mb-4">
-            Deleting a project will soft delete it and free up a project slot. Only do this if you no longer need its current configuration.
-          </p>
-          <button @click="showDeleteConfirm = true" class="bg-fuse-red hover:bg-fuse-red/80 text-white px-4 py-2 rounded-lg font-medium transition-colors w-full">
-            Delete Project
-          </button>
-        </div>
-      </aside>
+        </aside>
+      </div>
     </main>
 
     <div v-else-if="notFound" class="flex items-center justify-center min-h-screen">
       <div class="text-center">
-        <p class="text-fuse-dim mb-4">Project not found.</p>
-        <button @click="navigateTo('/projects')" class="btn-primary">Back to Projects</button>
+        <p class="text-fuse-dim mb-4 text-sm">Project not found.</p>
+        <button @click="navigateTo('/projects')" class="btn-primary text-xs">← Back to Projects</button>
       </div>
     </div>
 
-    <!-- Delete confirmation modal -->
+    <!-- Add instance modal -->
     <Teleport to="body">
-      <div v-if="showDeleteConfirm"
-        class="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-50 p-4"
-        @click.self="showDeleteConfirm = false">
-        <div class="glass-modal w-full max-w-md animate-slide-up">
-          <div class="p-6 border-b border-white/[0.07]">
-            <h2 class="text-lg font-bold text-fuse-red">Delete Project</h2>
-            <p class="text-fuse-dim text-xs mt-1">This action cannot be undone.</p>
+      <div v-if="showAddInstance" class="fixed inset-0 z-50 flex items-center justify-center p-4"
+        style="background:rgba(0,0,0,0.75);backdrop-filter:blur(12px);"
+        @click.self="showAddInstance = false">
+        <div class="glass-modal w-full max-w-sm animate-slide-up">
+          <div class="flex items-center justify-between px-5 py-4 border-b border-white/[0.06]">
+            <div>
+              <h2 class="text-sm font-bold text-fuse-text">New instance</h2>
+              <p class="text-[10px] text-fuse-muted mt-0.5">Each instance gets its own SDK token</p>
+            </div>
+            <button @click="showAddInstance = false" class="text-fuse-muted hover:text-fuse-dim text-sm leading-none">✕</button>
           </div>
-          <div class="p-6 space-y-4">
-            <p class="text-fuse-dim text-sm">
-              Are you sure you want to delete <strong>{{ project?.name }}</strong>? This will soft delete the project and free up a slot for creating new projects.
-            </p>
-            <div class="flex gap-3 pt-1">
-              <button @click="showDeleteConfirm = false" class="btn-ghost flex-1">Cancel</button>
-              <button @click="deleteProject" :disabled="deleteLoading" class="bg-fuse-red hover:bg-fuse-red/80 disabled:opacity-50 disabled:cursor-not-allowed text-white px-4 py-2 rounded-lg font-medium transition-colors flex-1">
-                {{ deleteLoading ? 'Deleting…' : 'Delete Project' }}
+          <div class="p-5 space-y-4">
+            <div class="field-group">
+              <label class="field-label">Environment type</label>
+              <div class="grid grid-cols-5 gap-1.5">
+                <button v-for="env in envTypes" :key="env"
+                  @click="newInst.env = env"
+                  class="py-1.5 rounded-lg border text-[9px] font-mono uppercase tracking-widest transition-all duration-100"
+                  :class="newInst.env === env
+                    ? 'border-fuse-red/40 bg-fuse-red/10 text-fuse-red'
+                    : 'border-white/[0.07] bg-white/[0.02] text-fuse-muted hover:text-fuse-dim hover:border-white/[0.12]'"
+                >{{ env }}</button>
+              </div>
+            </div>
+            <div class="field-group">
+              <label class="field-label">Label</label>
+              <input v-model="newInst.label" type="text" class="field-input text-xs"
+                :placeholder="newInst.env === 'custom' ? 'e.g. EU Region' : `e.g. ${newInst.env} server`"
+                @keydown.enter="addInstance" />
+            </div>
+            <div v-if="instanceError" class="text-fuse-red text-[10px] bg-fuse-red/[0.06] border border-fuse-red/20 rounded-lg px-3 py-2">{{ instanceError }}</div>
+            <div class="flex gap-2">
+              <button @click="showAddInstance = false" class="btn-ghost flex-1 text-xs">Cancel</button>
+              <button @click="addInstance" :disabled="instanceLoading" class="btn-primary flex-1 text-xs">
+                {{ instanceLoading ? 'Creating…' : 'Create instance' }}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </Teleport>
+
+    <!-- Delete confirm modal -->
+    <Teleport to="body">
+      <div v-if="showDeleteConfirm" class="fixed inset-0 z-50 flex items-center justify-center p-4"
+        style="background:rgba(0,0,0,0.8);backdrop-filter:blur(12px);"
+        @click.self="showDeleteConfirm = false">
+        <div class="glass-modal w-full max-w-sm animate-slide-up">
+          <div class="p-5 border-b border-white/[0.06]">
+            <h2 class="text-sm font-bold text-fuse-red">Delete project</h2>
+            <p class="text-fuse-dim text-xs mt-1">This cannot be undone. All instances will be removed.</p>
+          </div>
+          <div class="p-5 space-y-4">
+            <p class="text-fuse-dim text-sm">Delete <strong class="text-fuse-text">{{ project?.name }}</strong>?</p>
+            <div class="flex gap-2">
+              <button @click="showDeleteConfirm = false" class="btn-ghost flex-1 text-xs">Cancel</button>
+              <button @click="deleteProject" :disabled="deleteLoading"
+                class="flex-1 text-xs bg-fuse-red hover:bg-red-500 text-white px-4 py-2 rounded-lg font-bold transition-colors disabled:opacity-50">
+                {{ deleteLoading ? 'Deleting…' : 'Delete' }}
               </button>
             </div>
           </div>
@@ -294,392 +317,239 @@
     </Teleport>
 
     <!-- Toast -->
-    <div v-if="statusMsg" class="fixed bottom-6 right-6 bg-fuse-zinc border px-4 py-2 rounded-lg text-sm font-mono transition-all z-50"
-      :class="statusMsg.type === 'success' ? 'border-fuse-green text-fuse-green' : 'border-fuse-red text-fuse-red'">
-      {{ statusMsg.text }}
-    </div>
+    <Transition enter-active-class="transition-all duration-200" enter-from-class="opacity-0 translate-y-2" leave-active-class="transition-all duration-150" leave-to-class="opacity-0 translate-y-2">
+      <div v-if="toast" class="fixed bottom-5 right-5 px-4 py-2 rounded-lg text-xs font-mono border z-50"
+        :class="toast.type === 'success' ? 'border-fuse-green/40 text-fuse-green bg-fuse-green/[0.06]' : 'border-fuse-red/40 text-fuse-red bg-fuse-red/[0.06]'">
+        {{ toast.text }}
+      </div>
+    </Transition>
   </div>
 </template>
 
 <script setup lang="ts">
-import DeadFuse from '@surelle-ha/dead-fuse'
+import { Plus, Copy, Trash2, FlaskConical, Server } from 'lucide-vue-next'
 
 definePageMeta({ middleware: 'auth' })
 
 const route = useRoute()
-const id = route.params.id as string
+const id    = route.params.id as string
+const { openWith: openTesterWith } = useSdkTester()
 
-const project = ref<any>(null)
-const notFound = ref(false)
-const stateLoading = ref(false)
-const msgLoading = ref(false)
-const graceLoading = ref(false)
-const message = ref('')
-const gracePeriod = ref(3)
-const copied = ref('')
-const wsConnected = ref(false)
+// ── Project ───────────────────────────────────────────────────────
+const project          = ref<any>(null)
+const notFound         = ref(false)
+const stateLoading     = ref(false)
+const msgLoading       = ref(false)
+const graceLoading     = ref(false)
+const message          = ref('')
+const gracePeriod      = ref(3)
+const copied           = ref('')
+const wsConnected      = ref(false)
 const connectedClients = ref(0)
-const clientHosts = ref<Array<{ clientId: string; host?: string; lastSeen: number }>>([])
-const statusMsg = ref<{ text: string; type: 'success' | 'error' } | null>(null)
-const logBox = ref<HTMLElement | null>(null)
+const clientHosts      = ref<any[]>([])
+const toast            = ref<{ text: string; type: 'success'|'error' } | null>(null)
 const showDeleteConfirm = ref(false)
-const deleteLoading = ref(false)
+const deleteLoading    = ref(false)
+let toastTimer: ReturnType<typeof setTimeout> | null = null
+let pollTimer:  ReturnType<typeof setInterval>  | null = null
 
-let statusTimer: ReturnType<typeof setTimeout> | null = null
-let pollTimer: ReturnType<typeof setInterval> | null = null
+// ── Instances (from API) ──────────────────────────────────────────
+const instances       = ref<any[]>([])
+const instancesLoading = ref(false)
+const showAddInstance = ref(false)
+const instanceLoading = ref(false)
+const instanceError   = ref('')
+const envTypes        = ['dev','qa','staging','prod','custom']
+const newInst         = reactive({ env: 'dev', label: '' })
+const snippetId       = ref('')
 
-// ── Tester state ────────────────────────────────────────────────────────────
-const tester = reactive<{
-  activated: boolean
-  loading: boolean
-  state: string | null
-  lastMessage: string
-  logs: { time: string; type: string; msg: string }[]
-}>({
-  activated: false,
-  loading: false,
-  state: null,
-  lastMessage: '',
-  logs: [],
-})
-
-function testerLog(type: string, msg: string) {
-  const now = new Date()
-  const time = now.toLocaleTimeString('en-GB', { hour12: false })
-  tester.logs.push({ time, type, msg })
-  nextTick(() => {
-    if (logBox.value) logBox.value.scrollTop = logBox.value.scrollHeight
-  })
-}
-
-function testerActivate() {
-  if (!project.value) return
-  tester.loading = true
+async function loadInstances() {
+  instancesLoading.value = true
   try {
-    // Set up listeners before activation to catch initial state
-    const stateListeners = {
-      onActive: () => {
-        tester.state = 'ACTIVE'
-        testerLog('active', 'SDK received ACTIVE state — full access granted.')
-      },
-      onWarning: (msg: string) => {
-        tester.state = 'WARNING'
-        tester.lastMessage = msg
-        testerLog('warning', `Warning received: ${msg}`)
-      },
-      onReadonly: () => {
-        tester.state = 'READONLY'
-        testerLog('readonly', 'Read-only mode — POST/PUT/PATCH/DELETE are now blocked.')
-      },
-      onLimited: () => {
-        tester.state = 'LIMITED'
-        testerLog('limited', 'Limited mode — custom partial restrictions active.')
-      },
-      onLocked: (msg: string) => {
-        tester.state = 'LOCKED'
-        tester.lastMessage = msg
-        testerLog('locked', `Locked: ${msg}`)
-      },
-      onExpired: () => {
-        tester.state = 'EXPIRED'
-        testerLog('expired', 'Contract expired.')
-      },
-      onSleep: () => {
-        tester.state = 'SLEEP'
-        testerLog('sleep', 'App paused (SLEEP).')
-      },
-      onSelfDestruct: () => {
-        tester.state = 'SELF_DESTRUCT'
-        testerLog('self_destruct', 'SELF_DESTRUCT handler triggered.')
-      },
-      onDisconnect: () => {
-        testerLog('disconnect', 'Disconnected from Realtime channel — applying fallback.')
-      },
-      onReconnect: () => {
-        testerLog('info', 'Reconnected to Realtime channel.')
-      },
+    instances.value = await $fetch<any[]>(`/api/projects/${id}/instances`)
+    if (instances.value.length && !snippetId.value) {
+      snippetId.value = instances.value[0].id
     }
-    
-    DeadFuse.activate({
-      projectId: project.value.project_key,
-      token: project.value.public_token,
-      fallbackMode: 'READONLY',
-      ...stateListeners,
+  } catch { instances.value = [] }
+  finally { instancesLoading.value = false }
+}
+
+async function addInstance() {
+  instanceError.value = ''
+  if (!newInst.label.trim()) { instanceError.value = 'Label is required'; return }
+  instanceLoading.value = true
+  try {
+    const inst = await $fetch<any>(`/api/projects/${id}/instances`, {
+      method: 'POST',
+      body: { env: newInst.env, label: newInst.label.trim() },
     })
-    
-    tester.activated = true
-    wsConnected.value = true
-    connectedClients.value = 1
-    testerLog('info', `SDK activated for project "${project.value.project_key}".`)
-  } catch (err: any) {
-    testerLog('error', err?.message ?? 'Activation failed.')
+    instances.value.push(inst)
+    if (!snippetId.value) snippetId.value = inst.id
+    showAddInstance.value = false
+    newInst.label = ''
+    newInst.env   = 'dev'
+    showToast('Instance created', 'success')
+  } catch (e: any) {
+    instanceError.value = e?.data?.statusMessage || 'Failed to create instance'
   } finally {
-    tester.loading = false
+    instanceLoading.value = false
   }
 }
 
-function testerDeactivate() {
-  DeadFuse.deactivate()
-  tester.activated = false
-  tester.state = null
-  tester.lastMessage = ''
-  wsConnected.value = false
-  connectedClients.value = 0
-  testerLog('info', 'SDK deactivated.')
-}
-
-const testerStateColor = computed(() => {
-  const map: Record<string, string> = {
-    ACTIVE: 'text-fuse-green',
-    WARNING: 'text-fuse-yellow',
-    READONLY: 'text-fuse-blue',
-    LIMITED: 'text-fuse-orange',
-    LOCKED: 'text-fuse-red',
-    EXPIRED: 'text-fuse-red',
-    SLEEP: 'text-fuse-dim',
-    SELF_DESTRUCT: 'text-fuse-purple',
-  }
-  return tester.state ? (map[tester.state] ?? 'text-fuse-text') : 'text-fuse-dim'
-})
-
-// cleanup on leave
-onUnmounted(() => {
-  if (tester.activated) DeadFuse.deactivate()
-  if (pollTimer) clearInterval(pollTimer)
-})
-// ── /Tester ──────────────────────────────────────────────────────────────────
-
-onMounted(async () => {
+async function toggleDeployed(inst: any) {
+  const next = !inst.deployed
   try {
-    project.value = await $fetch<any>(`/api/projects/${id}`)
-    message.value = project.value.message || ''
-    gracePeriod.value = project.value.grace_period
-  } catch {
-    notFound.value = true
-    return
-  }
-
-  // Poll for connected client count
-  await pollClientStatus()
-  pollTimer = setInterval(pollClientStatus, 5000)
-})
-
-async function pollClientStatus() {
-  if (!project.value || tester.activated) return
-  try {
-    const res = await $fetch<{ connected: number; clients: Array<{ clientId: string; host?: string; lastSeen: number }> }>(`/api/projects/${id}/clients`)
-    connectedClients.value = res.connected
-    clientHosts.value = res.clients ?? []
-    wsConnected.value = res.connected > 0
-  } catch {
-    wsConnected.value = false
-    connectedClients.value = 0
-    clientHosts.value = []
-  }
+    const updated = await $fetch<any>(`/api/projects/${id}/instances/${inst.id}`, {
+      method: 'PATCH',
+      body: { deployed: next },
+    })
+    Object.assign(inst, updated)
+  } catch { showToast('Failed to update', 'error') }
 }
 
-// ─── Snippet — SDK auto-configures Supabase via dashboard config endpoint ───
+async function confirmRemoveInstance(inst: any) {
+  if (!confirm(`Remove instance "${inst.label}"?`)) return
+  try {
+    await $fetch(`/api/projects/${id}/instances/${inst.id}`, { method: 'DELETE' })
+    instances.value = instances.value.filter(i => i.id !== inst.id)
+    if (snippetId.value === inst.id) snippetId.value = instances.value[0]?.id ?? ''
+    showToast('Instance removed', 'success')
+  } catch { showToast('Failed to remove', 'error') }
+}
+
+function openTester(inst: any) {
+  openTesterWith(project.value.project_key, inst.token, inst.label)
+}
+
+function copyToken(token: string) {
+  navigator.clipboard.writeText(token)
+  showToast('Token copied', 'success')
+}
+
+function envBadgeClass(env: string) {
+  const m: Record<string,string> = {
+    dev:     'bg-fuse-blue/10   text-fuse-blue   border-fuse-blue/25',
+    qa:      'bg-fuse-yellow/10 text-fuse-yellow border-fuse-yellow/25',
+    staging: 'bg-fuse-orange/10 text-fuse-orange border-fuse-orange/25',
+    prod:    'bg-fuse-green/10  text-fuse-green  border-fuse-green/25',
+    custom:  'bg-fuse-purple/10 text-fuse-purple border-fuse-purple/25',
+  }
+  return m[env] ?? 'bg-white/[0.04] text-fuse-dim border-white/[0.08]'
+}
+
+// ── Snippet ───────────────────────────────────────────────────────
 const snippet = computed(() => {
   if (!project.value) return ''
-  return `import DeadFuse from "@surelle-ha/dead-fuse";
-
-DeadFuse.activate({
-  projectId: "${project.value.project_key}",
-  token: "${project.value.public_token}",
-  fallbackMode: "readonly",
-  onActive:   () => console.log("Active"),
-  onWarning:  (msg) => alert(msg),
-  onReadonly: () => console.warn("Read-only mode"),
-  onLocked:   (msg) => { console.error(msg); },
-});`
+  const inst  = instances.value.find(i => i.id === snippetId.value)
+  const token = inst?.token ?? '<instance-token>'
+  return `import DeadFuse from "dead-fuse";\n\nDeadFuse.activate({\n  projectId: "${project.value.project_key}",\n  token: "${token}",\n  fallbackMode: "readonly",\n  onActive:   () => console.log("Active"),\n  onWarning:  (msg) => showBanner(msg),\n  onReadonly: () => showNotice("Read-only mode"),\n  onLocked:   (msg) => { console.error(msg); },\n});`
 })
 
-function formatRelativeTime(timestamp: number) {
-  const diffMs = Date.now() - timestamp
-  const diffSec = Math.floor(diffMs / 1000)
-  if (diffSec < 10) return 'just now'
-  if (diffSec < 60) return `${diffSec}s ago`
-  const diffMin = Math.floor(diffSec / 60)
-  if (diffMin < 60) return `${diffMin}m ago`
-  const diffHour = Math.floor(diffMin / 60)
-  return `${diffHour}h ago`
-}
-
-function stateColor(state: string) {
-  const map: Record<string, string> = {
-    ACTIVE: 'text-fuse-green',
-    WARNING: 'text-fuse-yellow',
-    READONLY: 'text-fuse-blue',
-    LIMITED: 'text-fuse-orange',
-    LOCKED: 'text-fuse-red',
-    EXPIRED: 'text-fuse-red',
-    SLEEP: 'text-fuse-dim',
-    SELF_DESTRUCT: 'text-fuse-purple',
-  }
-  return map[state] || 'text-fuse-text'
-}
-
-function formatDate(d: string) {
-  return new Date(d).toLocaleString()
-}
-
-async function updateState(newState: string) {
-  stateLoading.value = true
+// ── Lifecycle ─────────────────────────────────────────────────────
+onMounted(async () => {
   try {
-    const updated = await $fetch(`/api/projects/${id}/state`, {
-      method: 'POST',
-      body: { state: newState, message: message.value },
-    })
-    project.value = updated
-    showStatus(`State changed to ${newState}`, 'success')
-  } catch (err: any) {
-    showStatus(err?.data?.statusMessage || 'Failed to update state', 'error')
-  } finally {
-    stateLoading.value = false
-  }
+    project.value     = await $fetch<any>(`/api/projects/${id}`)
+    message.value     = project.value.message || ''
+    gracePeriod.value = project.value.grace_period
+  } catch { notFound.value = true; return }
+  await loadInstances()
+  await pollClients()
+  pollTimer = setInterval(pollClients, 5000)
+})
+onUnmounted(() => { if (pollTimer) clearInterval(pollTimer) })
+
+async function pollClients() {
+  if (!project.value) return
+  try {
+    const res = await $fetch<{ connected: number; clients: any[] }>(`/api/projects/${id}/clients`)
+    connectedClients.value = res.connected
+    clientHosts.value      = res.clients ?? []
+    wsConnected.value      = res.connected > 0
+  } catch { wsConnected.value = false; connectedClients.value = 0; clientHosts.value = [] }
 }
 
+// ── API actions ───────────────────────────────────────────────────
+async function updateState(s: string) {
+  stateLoading.value = true
+  try { project.value = await $fetch(`/api/projects/${id}/state`, { method: 'POST', body: { state: s, message: message.value } }); showToast(`State → ${s}`, 'success') }
+  catch (e: any) { showToast(e?.data?.statusMessage || 'Failed', 'error') }
+  finally { stateLoading.value = false }
+}
 async function updateMessage() {
   msgLoading.value = true
-  try {
-    const updated = await $fetch(`/api/projects/${id}/state`, {
-      method: 'POST',
-      body: { message: message.value },
-    })
-    project.value = updated
-    showStatus('Message saved', 'success')
-  } catch {
-    showStatus('Failed to save message', 'error')
-  } finally {
-    msgLoading.value = false
-  }
+  try { project.value = await $fetch(`/api/projects/${id}/state`, { method: 'POST', body: { message: message.value } }); showToast('Message saved', 'success') }
+  catch { showToast('Failed', 'error') }
+  finally { msgLoading.value = false }
 }
-
 async function updateGracePeriod() {
   graceLoading.value = true
-  try {
-    const updated = await $fetch(`/api/projects/${id}/state`, {
-      method: 'POST',
-      body: { gracePeriod: gracePeriod.value },
-    })
-    project.value = updated
-    showStatus('Grace period updated', 'success')
-  } catch {
-    showStatus('Failed to update grace period', 'error')
-  } finally {
-    graceLoading.value = false
-  }
+  try { project.value = await $fetch(`/api/projects/${id}/state`, { method: 'POST', body: { gracePeriod: gracePeriod.value } }); showToast('Grace period updated', 'success') }
+  catch { showToast('Failed', 'error') }
+  finally { graceLoading.value = false }
 }
-
+async function deleteProject() {
+  deleteLoading.value = true
+  try { await $fetch(`/api/projects/${id}`, { method: 'DELETE' }); showToast('Deleted', 'success'); setTimeout(() => navigateTo('/projects'), 800) }
+  catch (e: any) { showToast(e?.data?.statusMessage || 'Failed', 'error') }
+  finally { deleteLoading.value = false; showDeleteConfirm.value = false }
+}
 async function copy(text: string, key: string) {
   await navigator.clipboard.writeText(text)
   copied.value = key
   setTimeout(() => { copied.value = '' }, 2000)
 }
 
-function showStatus(text: string, type: 'success' | 'error') {
-  statusMsg.value = { text, type }
-  if (statusTimer) clearTimeout(statusTimer)
-  statusTimer = setTimeout(() => { statusMsg.value = null }, 3000)
+function showToast(text: string, type: 'success'|'error') {
+  toast.value = { text, type }
+  if (toastTimer) clearTimeout(toastTimer)
+  toastTimer = setTimeout(() => { toast.value = null }, 3000)
 }
 
-async function deleteProject() {
-  deleteLoading.value = true
-  try {
-    await $fetch(`/api/projects/${id}`, { method: 'DELETE' })
-    showStatus('Project deleted successfully', 'success')
-    setTimeout(() => navigateTo('/projects'), 1000)
-  } catch (err: any) {
-    showStatus(err?.data?.statusMessage || 'Failed to delete project', 'error')
-  } finally {
-    deleteLoading.value = false
-    showDeleteConfirm.value = false
-  }
+function stateColor(s: string) {
+  const m: Record<string,string> = { ACTIVE:'text-fuse-green', WARNING:'text-fuse-yellow', READONLY:'text-fuse-blue', LIMITED:'text-fuse-orange', LOCKED:'text-fuse-red', EXPIRED:'text-fuse-red', SLEEP:'text-fuse-dim', SELF_DESTRUCT:'text-fuse-purple' }
+  return m[s] || 'text-fuse-text'
+}
+function formatDate(d: string) { return new Date(d).toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' }) }
+function relTime(ts: number) {
+  const s = Math.floor((Date.now() - ts) / 1000)
+  if (s < 10) return 'just now'
+  if (s < 60) return `${s}s ago`
+  return `${Math.floor(s/60)}m ago`
 }
 </script>
 
 <style scoped>
-.connection-pill {
-  @apply flex items-center gap-2 px-3 py-1.5 rounded-full border text-xs font-medium transition-all duration-300;
-}
-.connection-pill--connected {
-  @apply bg-fuse-green/10 border-fuse-green/30 text-fuse-green;
-}
-.connection-pill--offline {
-  @apply bg-fuse-muted/10 border-fuse-border text-fuse-dim;
-}
-.connection-dot {
-  @apply w-1.5 h-1.5 rounded-full flex-shrink-0;
-}
-.connection-dot--connected {
-  @apply bg-fuse-green animate-pulse;
-}
-.connection-dot--offline {
-  @apply bg-fuse-muted;
-}
+.panel { @apply rounded-xl border border-white/[0.07] p-5; background:rgba(255,255,255,0.025); backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px); }
+.panel-title { @apply text-[10px] font-mono uppercase tracking-widest text-fuse-muted mb-3 block; }
+.stat-card { @apply rounded-xl border border-white/[0.06] px-4 py-3 flex flex-col gap-0.5; background:rgba(255,255,255,0.02); backdrop-filter:blur(8px); }
+.stat-label { @apply text-[9px] font-mono uppercase tracking-widest text-fuse-muted; }
+.stat-value { @apply text-sm font-bold text-fuse-text font-mono; }
+.field-label { @apply text-[9px] font-mono uppercase tracking-widest text-fuse-muted block mb-1.5; }
+.field-group { @apply flex flex-col gap-1; }
+.field-input { @apply w-full bg-black/30 border border-white/[0.08] rounded-lg px-3 py-2 text-fuse-text outline-none focus:border-fuse-red/40 focus:ring-1 focus:ring-fuse-red/[0.12] transition-all duration-150 placeholder:text-fuse-muted; }
+.detail-row   { @apply flex flex-col gap-0.5; }
+.detail-label { @apply text-[9px] font-mono uppercase tracking-widest text-fuse-muted; }
+.detail-value { @apply text-xs text-fuse-dim; }
+.token-row { @apply flex items-center gap-2 bg-black/30 border border-white/[0.07] rounded-lg px-3 py-2 mt-1; }
+.copy-btn  { @apply text-[10px] font-mono text-fuse-muted hover:text-fuse-text border border-white/[0.07] rounded px-1.5 py-0.5 transition-colors whitespace-nowrap; background:rgba(255,255,255,0.02); }
+.code-block { @apply rounded-lg border border-white/[0.07] overflow-hidden; background:rgba(0,0,0,0.35); }
+.mini-select { @apply text-[10px] font-mono text-fuse-dim rounded-lg border border-white/[0.08] px-2 py-1 outline-none; background:rgba(255,255,255,0.03); }
+.btn-primary   { @apply bg-fuse-red hover:bg-red-500 text-white font-bold px-4 py-2 rounded-lg transition-all disabled:opacity-40 disabled:cursor-not-allowed; }
+.btn-secondary { @apply bg-white/[0.04] border border-white/[0.08] hover:border-white/[0.16] text-fuse-dim hover:text-fuse-text py-2 rounded-lg transition-all disabled:opacity-40; }
+.btn-ghost     { @apply border border-white/[0.08] hover:border-white/[0.15] text-fuse-dim hover:text-fuse-text px-3 py-2 rounded-lg transition-all flex items-center gap-1.5; }
+.icon-btn      { @apply w-7 h-7 flex items-center justify-center text-fuse-muted hover:text-fuse-text rounded-md hover:bg-white/[0.06] transition-all; }
 
-.client-status-banner {
-  @apply rounded-xl border p-4 flex items-center justify-between gap-4;
-}
-.client-status-banner--ok {
-  @apply bg-fuse-green/5 border-fuse-green/20;
-}
-.client-status-banner--warn {
-  @apply bg-fuse-red/5 border-fuse-red/20;
-}
+.instance-card { @apply rounded-xl border border-white/[0.07] p-4 transition-all duration-150; background:rgba(255,255,255,0.02); backdrop-filter:blur(8px); }
+.instance-card--alert { border-color:rgba(255,51,51,0.2); background:rgba(255,51,51,0.025); }
+.env-badge { @apply text-[9px] font-mono font-bold uppercase tracking-widest px-1.5 py-0.5 rounded border flex-shrink-0; }
 
-.panel {
-  @apply bg-white/[0.025] backdrop-blur-sm border border-white/[0.07] rounded-xl p-6;
-}
-.panel-title {
-  @apply text-sm font-bold text-fuse-text uppercase tracking-widest font-mono mb-4;
-}
-.stat-card {
-  @apply bg-white/[0.025] backdrop-blur-sm border border-white/[0.07] rounded-xl p-4 flex flex-col gap-1;
-}
-.stat-label {
-  @apply text-xs font-mono text-fuse-dim uppercase tracking-widest;
-}
-.stat-value {
-  @apply text-lg font-bold text-fuse-text font-mono;
-}
-.field-label {
-  @apply text-xs font-mono text-fuse-dim uppercase tracking-widest block mb-1.5;
-}
-.field-input {
-  @apply w-full bg-fuse-zinc border border-fuse-border rounded-md px-3 py-2.5 text-fuse-text text-sm outline-none
-  focus:border-fuse-red/60 focus:ring-1 focus:ring-fuse-red/20 transition-all duration-200 placeholder:text-fuse-muted;
-}
-.btn-primary {
-  @apply bg-fuse-red hover:bg-red-500 text-white font-bold text-sm px-4 py-2.5 rounded-md transition-all duration-200;
-}
-.btn-secondary {
-  @apply bg-fuse-zinc border border-fuse-border hover:border-fuse-muted text-fuse-text text-sm px-4 py-2.5
-  rounded-md transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed;
-}
-.btn-tester-activate {
-  @apply bg-fuse-green/20 hover:bg-fuse-green/30 border border-fuse-green/40 text-fuse-green font-bold text-sm
-  px-4 py-2.5 rounded-md transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed;
-}
-.token-row {
-  @apply flex items-center gap-3 bg-fuse-zinc border border-fuse-border rounded-lg px-3 py-2 mt-1;
-}
-.copy-btn {
-  @apply text-xs text-fuse-dim hover:text-fuse-text font-mono border border-fuse-border rounded px-2 py-0.5
-  transition-colors whitespace-nowrap;
-}
+.toggle-track { position:relative; width:38px; height:22px; border-radius:11px; border:1px solid; transition:background 0.2s,border-color 0.2s; cursor:pointer; outline:none; }
+.toggle-track:focus-visible { box-shadow:0 0 0 2px rgba(255,51,51,0.4); }
+.toggle-on  { background:rgba(0,255,136,0.18); border-color:rgba(0,255,136,0.35); }
+.toggle-off { background:rgba(255,255,255,0.05); border-color:rgba(255,255,255,0.12); }
+.toggle-thumb { position:absolute; top:50%; margin-top:-8px; width:16px; height:16px; border-radius:50%; transition:transform 0.2s cubic-bezier(0.4,0,0.2,1),background 0.2s; pointer-events:none; }
+.toggle-on  .toggle-thumb { background:#00ff88; }
+.toggle-off .toggle-thumb { background:#555; }
 
-/* Tester */
-.tester-stat {
-  @apply bg-black/30 border border-white/[0.06] rounded-lg px-3 py-2.5 flex flex-col gap-1;
-}
-.tester-stat-label {
-  @apply text-xs font-mono text-fuse-dim uppercase tracking-widest;
-}
-.tester-log-box {
-  @apply bg-black/40 border border-white/[0.06] rounded-lg p-3 h-44 overflow-y-auto font-mono text-xs;
-}
-.tester-log-row {
-  @apply flex items-start gap-3 py-0.5 border-b border-white/[0.04] last:border-0;
-}
+.glass-modal { @apply rounded-2xl border border-white/[0.1]; background:rgba(14,14,14,0.96); backdrop-filter:blur(24px); box-shadow:0 24px 64px rgba(0,0,0,0.6); }
 </style>

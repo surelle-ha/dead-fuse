@@ -1,13 +1,13 @@
 <template>
   <div class="min-h-screen bg-fuse-black flex items-center justify-center p-6 relative overflow-hidden">
-    <!-- Ambient background -->
+    
     <div class="absolute inset-0 pointer-events-none">
       <div class="absolute top-1/4 left-1/4 w-96 h-96 bg-fuse-red/5 rounded-full blur-3xl" />
       <div class="absolute bottom-1/4 right-1/4 w-64 h-64 bg-fuse-red/3 rounded-full blur-2xl" />
     </div>
 
     <div class="w-full max-w-lg animate-slide-up relative z-10">
-      <!-- Header -->
+      
       <div class="mb-10">
         <div class="flex items-center gap-3 mb-6">
           <div class="w-8 h-8 bg-fuse-red rounded-sm flex items-center justify-center shadow-lg shadow-fuse-red/20">
@@ -21,10 +21,10 @@
         </p>
       </div>
 
-      <!-- Steps -->
+      
       <div class="space-y-4">
 
-        <!-- Step 1 -->
+        
         <div class="glass-panel">
           <div class="flex items-start gap-4">
             <div class="step-number">1</div>
@@ -44,7 +44,7 @@
           </div>
         </div>
 
-        <!-- Step 2 -->
+        
         <div class="glass-panel">
           <div class="flex items-start gap-4">
             <div class="step-number">2</div>
@@ -82,7 +82,7 @@
           </div>
         </div>
 
-        <!-- Step 3 -->
+        
         <div class="glass-panel">
           <div class="flex items-start gap-4">
             <div class="step-number">3</div>
@@ -103,7 +103,7 @@
           </div>
         </div>
 
-        <!-- Step 4 -->
+        
         <div class="glass-panel">
           <div class="flex items-start gap-4">
             <div class="step-number">4</div>
@@ -116,7 +116,7 @@
 
       </div>
 
-      <!-- Check again button -->
+      
       <div class="mt-6 flex gap-3">
         <button @click="checkStatus" :disabled="checking" class="btn-primary flex-1">
           <span v-if="checking">Checking…</span>

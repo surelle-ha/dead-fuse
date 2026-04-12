@@ -29,7 +29,6 @@
                     just projects.</p>
             </div>
 
-            <!-- Billing toggle -->
             <div class="flex items-center justify-center gap-3 mb-10">
                 <span class="text-xs font-mono"
                     :class="billing === 'monthly' ? 'text-fuse-text' : 'text-fuse-dim'">Monthly</span>
@@ -46,7 +45,6 @@
                 </span>
             </div>
 
-            <!-- Plans -->
             <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
                 <div v-for="plan in plans" :key="plan.id" class="plan-card relative"
                     :class="plan.featured ? 'plan-card--featured' : ''">
@@ -101,7 +99,6 @@
                 </div>
             </div>
 
-            <!-- Feature comparison -->
             <div class="mt-14">
                 <h2 class="text-xs font-mono text-fuse-dim uppercase tracking-widest mb-5 text-center">Full comparison
                 </h2>
@@ -121,7 +118,6 @@
                 </div>
             </div>
 
-            <!-- FAQ -->
             <div class="mt-14 max-w-2xl mx-auto">
                 <h2 class="text-xs font-mono text-fuse-dim uppercase tracking-widest mb-6 text-center">Questions</h2>
                 <div class="space-y-2">
@@ -163,7 +159,7 @@ const plans = [
         features: [
             { text: '2 projects', included: true },
             { text: 'All 8 states', included: true },
-            { text: 'Supabase Realtime', included: true },
+            { text: 'Realtime sync', included: true },
             { text: 'GitHub login', included: true },
             { text: 'Priority support', included: false },
             { text: 'Custom domain', included: false },
@@ -182,7 +178,7 @@ const plans = [
         features: [
             { text: '25 projects', included: true },
             { text: 'All 8 states', included: true },
-            { text: 'Supabase Realtime', included: true },
+            { text: 'Realtime sync', included: true },
             { text: 'GitHub login', included: true },
             { text: 'Priority support', included: true },
             { text: 'Custom domain', included: true },
@@ -201,7 +197,7 @@ const plans = [
         features: [
             { text: 'Unlimited projects', included: true },
             { text: 'All 8 states', included: true },
-            { text: 'Supabase Realtime', included: true },
+            { text: 'Realtime sync', included: true },
             { text: 'GitHub login', included: true },
             { text: 'Priority support', included: true },
             { text: 'Custom domain', included: true },

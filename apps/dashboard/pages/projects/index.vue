@@ -5,28 +5,9 @@
       <div class="absolute -bottom-32 -right-32 w-64 h-64 bg-fuse-red/[0.03] rounded-full blur-3xl" />
     </div>
 
-    <!-- Nav -->
-    <nav class="border-b border-white/[0.07] px-5 py-3 flex items-center justify-between sticky top-0 z-10"
-      style="background: rgba(10,10,10,0.8); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);">
-      <div class="flex items-center gap-2.5">
-        <div class="w-6 h-6 bg-fuse-red rounded-sm flex items-center justify-center shadow-sm shadow-fuse-red/20">
-          <span class="text-white font-mono text-[9px] font-bold">DF</span>
-        </div>
-        <span class="font-semibold text-fuse-text text-sm">Projects</span>
-        <span class="text-white/10 hidden sm:block">·</span>
-        <span class="text-fuse-muted text-[10px] font-mono hidden sm:block tracking-widest">License Control</span>
-      </div>
-      <div class="flex items-center gap-4">
-        <NuxtLink to="/docs" class="text-fuse-dim hover:text-fuse-text text-xs transition-colors font-mono hidden sm:inline">
-          Docs
-        </NuxtLink>
-        <span class="text-fuse-muted text-xs font-mono hidden sm:inline">{{ userEmail }}</span>
-        <button @click="logout" class="text-fuse-dim hover:text-fuse-red text-xs transition-colors font-mono">Logout</button>
-      </div>
-    </nav>
-
+    
     <main class="max-w-4xl mx-auto px-5 py-8 relative z-10">
-      <!-- Header -->
+      
       <div class="flex items-center justify-between mb-6">
         <div>
           <h1 class="text-xl font-bold text-fuse-text">Projects</h1>
@@ -42,7 +23,7 @@
         </button>
       </div>
 
-      <!-- Upgrade banner -->
+      
       <div v-if="limitReached" class="upgrade-banner mb-5">
         <div class="flex items-center justify-between gap-3">
           <div>
@@ -53,7 +34,7 @@
         </div>
       </div>
 
-      <!-- Stats bar -->
+      
       <div v-if="projects.length > 0 && !loading" class="stats-bar mb-5">
         <div class="stat-item" v-for="stat in projectStats" :key="stat.label">
           <span class="font-mono font-bold text-sm" :class="stat.color">{{ stat.count }}</span>
@@ -64,7 +45,7 @@
         </div>
       </div>
 
-      <!-- Empty state -->
+      
       <div v-if="!loading && projects.length === 0"
         class="text-center py-16 border border-dashed border-white/[0.07] rounded-xl"
         style="background: rgba(255,255,255,0.01); backdrop-filter: blur(8px);">
@@ -73,12 +54,12 @@
         <button @click="showCreate = true" class="btn-primary text-xs">Create first project</button>
       </div>
 
-      <!-- Loading -->
+      
       <div v-if="loading" class="grid grid-cols-1 md:grid-cols-2 gap-3">
         <div v-for="i in 4" :key="i" class="h-28 rounded-xl animate-pulse" style="background: rgba(255,255,255,0.03); border: 0.5px solid rgba(255,255,255,0.06);" />
       </div>
 
-      <!-- Grid -->
+      
       <div v-else-if="projects.length > 0" class="grid grid-cols-1 md:grid-cols-2 gap-3">
         <ProjectCard
           v-for="project in projects"
@@ -89,7 +70,7 @@
       </div>
     </main>
 
-    <!-- Create modal -->
+    
     <Teleport to="body">
       <div v-if="showCreate"
         class="fixed inset-0 flex items-center justify-center z-50 p-4"
@@ -163,7 +144,6 @@ const loading = ref(true)
 const showCreate = ref(false)
 const createLoading = ref(false)
 const createError = ref('')
-const userEmail = ref('')
 const projectLimit = 2
 
 const newProject = reactive({
@@ -191,8 +171,7 @@ const projectStats = computed(() => {
 
 onMounted(async () => {
   try {
-    const me = await $fetch<{ email: string }>('/api/auth/me')
-    userEmail.value = me.email
+    await $fetch('/api/auth/me')
   } catch {
     router.push('/login')
     return
@@ -237,10 +216,6 @@ async function createProject() {
   }
 }
 
-async function logout() {
-  await $fetch('/api/auth/logout', { method: 'POST' })
-  router.push('/login')
-}
 </script>
 
 <style scoped>

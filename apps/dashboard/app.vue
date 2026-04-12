@@ -22,13 +22,10 @@
             <p class="text-[9px] font-mono text-fuse-muted tracking-widest uppercase whitespace-nowrap leading-tight">License control</p>
           </div>
         </Transition>
-        <ChevronLeft
-          v-if="sidebarExpanded"
-          class="w-3 h-3 text-fuse-muted flex-shrink-0 ml-auto"
-        />
+        <ChevronLeft v-if="sidebarExpanded" class="w-3 h-3 text-fuse-muted flex-shrink-0 ml-auto" />
       </div>
 
-      <!-- Nav — scrollable middle zone -->
+      <!-- Nav — scrollable -->
       <nav class="flex-1 flex flex-col gap-0.5 p-2 pt-2.5 overflow-y-auto">
         <NuxtLink
           v-for="item in navItems"
@@ -39,17 +36,27 @@
           :title="!sidebarExpanded ? item.label : undefined"
         >
           <component :is="item.icon" class="nav-icon" />
-          <span v-if="sidebarExpanded" class="text-xs font-medium whitespace-nowrap overflow-hidden">
-            {{ item.label }}
-          </span>
-          <span
-            v-if="isActive(item.to) && !sidebarExpanded"
-            class="absolute right-1.5 top-1/2 -translate-y-1/2 w-1 h-1 rounded-full bg-fuse-red"
-          />
+          <span v-if="sidebarExpanded" class="text-xs font-medium whitespace-nowrap overflow-hidden">{{ item.label }}</span>
+          <span v-if="isActive(item.to) && !sidebarExpanded" class="absolute right-1.5 top-1/2 -translate-y-1/2 w-1 h-1 rounded-full bg-fuse-red" />
         </NuxtLink>
+
+        <div class="my-1.5 border-t border-white/[0.04] mx-1" />
+
+        <!-- SDK Tester — opens bubble, highlights when active -->
+        <button
+          @click="toggleBubble"
+          class="nav-item w-full text-left"
+          :class="bubble.visible && bubble.open ? 'nav-item--active' : 'nav-item--idle'"
+          :title="!sidebarExpanded ? 'SDK Tester' : undefined"
+        >
+          <FlaskConical class="nav-icon" />
+          <span v-if="sidebarExpanded" class="text-xs font-medium whitespace-nowrap overflow-hidden">SDK Tester</span>
+          <span v-if="bubble.activated && !sidebarExpanded" class="absolute right-1.5 top-1/2 -translate-y-1/2 w-1 h-1 rounded-full bg-fuse-green animate-pulse" />
+          <span v-if="bubble.activated && sidebarExpanded" class="ml-auto w-1.5 h-1.5 rounded-full bg-fuse-green animate-pulse flex-shrink-0" />
+        </button>
       </nav>
 
-      <!-- Settings — pinned to bottom, never scrolls away -->
+      <!-- Settings — pinned bottom -->
       <div class="flex-shrink-0 p-2 border-t border-white/[0.06]">
         <NuxtLink
           to="/settings"
@@ -59,10 +66,7 @@
         >
           <Settings class="nav-icon" />
           <span v-if="sidebarExpanded" class="text-xs font-medium whitespace-nowrap">Settings</span>
-          <span
-            v-if="isActive('/settings') && !sidebarExpanded"
-            class="absolute right-1.5 top-1/2 -translate-y-1/2 w-1 h-1 rounded-full bg-fuse-red"
-          />
+          <span v-if="isActive('/settings') && !sidebarExpanded" class="absolute right-1.5 top-1/2 -translate-y-1/2 w-1 h-1 rounded-full bg-fuse-red" />
         </NuxtLink>
       </div>
     </aside>
@@ -82,61 +86,59 @@
           </div>
           <span class="text-xs font-bold text-fuse-text">DeadFuse</span>
         </div>
-        <div class="flex items-center gap-4">
-          <NuxtLink
-            v-for="item in navItems"
-            :key="item.to"
-            :to="item.to"
-            class="transition-colors"
-            :class="isActive(item.to) ? 'text-fuse-red' : 'text-fuse-muted hover:text-fuse-text'"
-          >
+        <div class="flex items-center gap-3">
+          <NuxtLink v-for="item in navItems" :key="item.to" :to="item.to"
+            class="transition-colors" :class="isActive(item.to) ? 'text-fuse-red' : 'text-fuse-muted hover:text-fuse-text'">
             <component :is="item.icon" class="w-4 h-4" />
           </NuxtLink>
+          <button @click="toggleBubble" class="transition-colors" :class="bubble.open ? 'text-fuse-green' : 'text-fuse-muted hover:text-fuse-text'">
+            <FlaskConical class="w-4 h-4" />
+          </button>
           <NuxtLink to="/settings" class="text-fuse-muted hover:text-fuse-text transition-colors">
             <Settings class="w-4 h-4" />
           </NuxtLink>
         </div>
       </div>
 
-      <!-- Shared topbar with user email + dropdown -->
-      <AppTopbar
-        v-if="showSidebar"
-        :title="pageTitle"
-        :email="userEmail"
-      />
+      <!-- Shared topbar -->
+      <AppTopbar v-if="showSidebar" :title="pageTitle" />
 
       <main class="flex-1 min-w-0">
         <NuxtPage />
       </main>
     </div>
+
+    <!-- ── Floating SDK Tester Bubble ─────────────────────────────── -->
+    <SdkTesterBubble v-if="showSidebar" />
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useRoute } from '#imports'
-import { Box, BarChart3, BookOpen, Settings, ChevronLeft } from 'lucide-vue-next'
+import { Box, BarChart3, BookOpen, Settings, ChevronLeft, FlaskConical } from 'lucide-vue-next'
 
 const route = useRoute()
 const sidebarExpanded = ref(true)
-const userEmail = ref('')
+const { bubble, toggle: toggleBubble } = useSdkTester()
 
 const showSidebar = computed(() =>
   !['/login', '/onboarding', '/pricing'].includes(route.path)
 )
 
 const navItems = [
-  { label: 'Projects',      to: '/projects',  icon: Box       },
-  { label: 'Analytics',     to: '/analytics', icon: BarChart3  },
-  { label: 'Documentation', to: '/docs',       icon: BookOpen   },
+  { label: 'Projects',      to: '/projects',  icon: Box },
+  { label: 'Analytics',     to: '/analytics', icon: BarChart3 },
+  { label: 'Documentation', to: '/docs',       icon: BookOpen },
 ]
 
 const pageTitles: Record<string, string> = {
-  '/projects':  'Projects',
-  '/analytics': 'Analytics',
-  '/docs':      'Documentation',
-  '/settings':  'Settings',
-  '/pricing':   'Pricing',
+  '/projects':   'Projects',
+  '/analytics':  'Analytics',
+  '/docs':       'Documentation',
+  '/settings':   'Settings',
+  '/pricing':    'Pricing',
+  '/sdk-tester': 'SDK Tester',
 }
 
 const pageTitle = computed(() => {
@@ -148,14 +150,6 @@ const pageTitle = computed(() => {
 function isActive(to: string) {
   return route.path === to || route.path.startsWith(to + '/')
 }
-
-onMounted(async () => {
-  if (!showSidebar.value) return
-  try {
-    const me = await $fetch<{ email: string }>('/api/auth/me')
-    userEmail.value = me.email
-  } catch {}
-})
 </script>
 
 <style>
@@ -164,7 +158,7 @@ onMounted(async () => {
 html { scroll-behavior: smooth; }
 body {
   background-color: #0a0a0a;
-  color: #e8e8e8;
+  color: #f0f0f0;
   font-family: 'Syne', sans-serif;
   -webkit-font-smoothing: antialiased;
 }
@@ -172,7 +166,7 @@ body {
 ::-webkit-scrollbar { width: 3px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: #2a2a2a; border-radius: 2px; }
-::-webkit-scrollbar-thumb:hover { background: #3a3a3a; }
+::-webkit-scrollbar-thumb:hover { background: #444444; }
 </style>
 
 <style scoped>

@@ -2,7 +2,6 @@
   <div class="min-h-screen bg-fuse-black">
     <main class="flex-1 max-w-4xl mx-auto px-6 py-8 animate-slide-up">
 
-      <!-- Intro -->
       <div class="mb-10">
         <div class="inline-flex items-center gap-2 border border-fuse-red/20 bg-fuse-red/[0.06] text-fuse-red text-[9px] font-mono uppercase tracking-widest px-2.5 py-1 rounded-full mb-3"
           style="backdrop-filter: blur(8px);">
@@ -14,7 +13,6 @@
         </p>
       </div>
 
-      <!-- TOC -->
       <div class="glass-panel mb-10 p-4">
         <h2 class="text-[9px] font-mono text-fuse-muted uppercase tracking-widest mb-2.5">On this page</h2>
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-0.5">
@@ -26,20 +24,18 @@
         </div>
       </div>
 
-      <!-- Sections -->
       <div class="space-y-12">
 
-        <!-- Architecture -->
         <section id="architecture">
           <h2 class="doc-heading">Architecture overview</h2>
-          <p class="doc-body">DeadFuse is a two-part system: this dashboard (server) and the <code class="code-inline">dead-fuse</code> npm package (client SDK). The SDK opens a Supabase Realtime channel on startup and listens for state broadcasts. When you toggle a project state here, it broadcasts instantly to every connected client.</p>
+          <p class="doc-body">DeadFuse is a two-part system: this dashboard (server) and the <code class="code-inline">dead-fuse</code> npm package (client SDK). The SDK opens a realtime channel on startup and listens for state broadcasts. When you toggle a project state here, it broadcasts instantly to every connected client.</p>
           <div class="arch-diagram mt-5">
             <div class="arch-box" style="border-color: rgba(255,51,51,0.2);">
               <div class="text-[9px] font-mono font-bold uppercase tracking-widest text-fuse-red mb-2">Dashboard</div>
               <div class="space-y-0.5 text-[10px] text-fuse-muted font-mono">
                 <div>Admin UI</div>
                 <div>REST API</div>
-                <div>Supabase Realtime</div>
+                <div>Realtime sync</div>
                 <div>PostgreSQL</div>
               </div>
             </div>
@@ -58,7 +54,6 @@
           </div>
         </section>
 
-        <!-- Installation -->
         <section id="installation">
           <h2 class="doc-heading">Installation</h2>
           <p class="doc-body">Install the SDK in the client app you want to control.</p>
@@ -73,7 +68,6 @@ pnpm add @surelle-ha/dead-fuse</pre>
           </div>
         </section>
 
-        <!-- Project limits -->
         <section id="limits">
           <h2 class="doc-heading">Project limits</h2>
           <p class="doc-body">Each account can manage up to <strong class="text-fuse-text font-medium">2 projects</strong> on the Free plan. The Projects page shows an upgrade notice when you hit the limit.</p>
@@ -83,7 +77,6 @@ pnpm add @surelle-ha/dead-fuse</pre>
           </div>
         </section>
 
-        <!-- Basic usage -->
         <section id="usage">
           <h2 class="doc-heading">Basic usage</h2>
           <p class="doc-body">Call <code class="code-inline">DeadFuse.activate()</code> as early as possible in your app. Find your <span class="text-fuse-text">Project ID</span> and <span class="text-fuse-text">Public Token</span> on the project detail page.</p>
@@ -96,7 +89,6 @@ pnpm add @surelle-ha/dead-fuse</pre>
           </div>
         </section>
 
-        <!-- States -->
         <section id="states">
           <h2 class="doc-heading">Project states</h2>
           <p class="doc-body">Each state triggers a different callback and may intercept HTTP requests automatically.</p>
@@ -118,7 +110,6 @@ pnpm add @surelle-ha/dead-fuse</pre>
           </div>
         </section>
 
-        <!-- Framework examples -->
         <section id="frameworks">
           <h2 class="doc-heading">Framework examples</h2>
           <div class="space-y-2 mt-3">
@@ -137,7 +128,6 @@ pnpm add @surelle-ha/dead-fuse</pre>
           </div>
         </section>
 
-        <!-- Reconnection -->
         <section id="reconnection">
           <h2 class="doc-heading">Reconnection & fallback</h2>
           <p class="doc-body">If the Realtime channel drops, the SDK applies <code class="code-inline">fallbackMode</code> immediately and reconnects with exponential backoff.</p>
@@ -161,7 +151,6 @@ pnpm add @surelle-ha/dead-fuse</pre>
           </div>
         </section>
 
-        <!-- Ethics -->
         <section id="ethics">
           <h2 class="doc-heading">Ethical usage</h2>
           <div class="space-y-2 mt-3">

@@ -1,7 +1,7 @@
 <template>
   <div class="min-h-screen bg-fuse-black flex items-center justify-center p-6">
     <div class="w-full max-w-sm animate-slide-up">
-      <!-- Brand -->
+      
       <div class="text-center mb-10">
         <div class="inline-flex items-center justify-center w-12 h-12 bg-fuse-red rounded-lg mb-4">
           <span class="text-white font-mono font-bold text-sm">DF</span>
@@ -10,7 +10,7 @@
         <p class="text-fuse-dim text-sm mt-1 font-mono">License Control Dashboard</p>
       </div>
 
-      <!-- Tab switcher -->
+      
       <div class="flex bg-fuse-zinc border border-fuse-border rounded-lg p-1 mb-6">
         <button v-for="tab in tabs" :key="tab"
           @click="mode = tab"

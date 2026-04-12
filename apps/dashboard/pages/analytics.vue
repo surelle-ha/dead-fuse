@@ -3,7 +3,7 @@
 
     <main class="max-w-5xl mx-auto px-6 py-6 animate-slide-up">
 
-      <!-- Sub-header: project count + freshness -->
+      
       <div class="flex items-center justify-between mb-6">
         <p class="text-[10px] font-mono text-fuse-muted">
           Derived from <span class="text-fuse-dim">{{ projects.length }}</span> project{{ projects.length !== 1 ? 's' : '' }}
@@ -13,13 +13,13 @@
         </div>
       </div>
 
-      <!-- Loading -->
+      
       <div v-if="loading" class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
         <div v-for="i in 4" :key="i" class="h-20 rounded-xl animate-pulse bg-white/[0.03] border border-white/[0.05]" />
       </div>
 
       <template v-else>
-        <!-- KPI Row -->
+        
         <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
           <div class="kpi-card">
             <span class="kpi-label">Total projects</span>
@@ -43,10 +43,10 @@
           </div>
         </div>
 
-        <!-- State distribution + Priority breakdown -->
+        
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
 
-          <!-- State distribution -->
+          
           <div class="glass-panel">
             <h2 class="panel-label mb-4">State distribution</h2>
             <div v-if="projects.length === 0" class="empty-hint">No projects yet</div>
@@ -65,7 +65,7 @@
             </div>
           </div>
 
-          <!-- Priority breakdown -->
+          
           <div class="glass-panel">
             <h2 class="panel-label mb-4">Priority breakdown</h2>
             <div v-if="projects.length === 0" class="empty-hint">No projects yet</div>
@@ -84,10 +84,10 @@
           </div>
         </div>
 
-        <!-- Grace period + Timeline -->
+        
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
 
-          <!-- Grace period overview -->
+          
           <div class="glass-panel">
             <h2 class="panel-label mb-4">Grace period overview</h2>
             <div v-if="projects.length === 0" class="empty-hint">No projects yet</div>
@@ -112,7 +112,7 @@
             </div>
           </div>
 
-          <!-- Project timeline -->
+          
           <div class="glass-panel">
             <h2 class="panel-label mb-4">Created timeline</h2>
             <div v-if="projects.length === 0" class="empty-hint">No projects yet</div>
@@ -128,7 +128,7 @@
           </div>
         </div>
 
-        <!-- Projects table -->
+        
         <div class="glass-panel">
           <div class="flex items-center justify-between mb-4">
             <h2 class="panel-label">All projects</h2>
@@ -173,10 +173,10 @@
           </div>
         </div>
 
-        <!-- Client connections + Completion -->
+        
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-4">
 
-          <!-- Target completions -->
+          
           <div class="glass-panel">
             <h2 class="panel-label mb-4">Upcoming deadlines</h2>
             <div v-if="upcomingDeadlines.length === 0" class="empty-hint">No deadlines set</div>
@@ -194,7 +194,7 @@
             </div>
           </div>
 
-          <!-- State health summary -->
+          
           <div class="glass-panel">
             <h2 class="panel-label mb-4">Health summary</h2>
             <div class="space-y-3">
