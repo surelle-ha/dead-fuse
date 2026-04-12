@@ -63,7 +63,6 @@ export default defineEventHandler(async (event) => {
     }
 
     const projectKey = randomBytes(8).toString("hex");
-    const publicToken = randomBytes(24).toString("hex");
 
     const { data: newProject, error } = await sb
       .from("projects")
@@ -71,7 +70,7 @@ export default defineEventHandler(async (event) => {
         user_id: auth.id,
         name: name.trim(),
         project_key: projectKey,
-        public_token: publicToken,
+        public_token: '',
         grace_period: Number(gracePeriod),
         client_name: clientName?.trim() || null,
         target_completion: targetCompletion || null,

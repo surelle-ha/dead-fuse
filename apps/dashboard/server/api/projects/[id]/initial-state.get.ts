@@ -12,19 +12,37 @@ export default defineEventHandler(async (event) => {
   const sb = useSupabaseAdmin();
   const hideDeleted = await hasDeletedAtColumn();
 
-  let query = sb
+  const { data: project, error: projectErr } = await sb
     .from("projects")
-    .select("state, message")
+    .select("id, state, message")
     .eq("project_key", id)
-    .eq("public_token", token);
+    .maybeSingle();
 
-  if (hideDeleted) {
-    query = query.is("deleted_at", null);
+  if (projectErr || !project) {
+    throw createError({ statusCode: 404, statusMessage: "Project not found." });
   }
 
-  const { data: project, error } = await query.single();
+  if (hideDeleted) {
+    const deletedCheck = await sb
+      .from("projects")
+      .select("id")
+      .eq("id", project.id)
+      .is("deleted_at", null)
+      .maybeSingle();
 
-  if (error || !project) {
+    if (!deletedCheck?.id) {
+      throw createError({ statusCode: 404, statusMessage: "Project not found." });
+    }
+  }
+
+  const { data: instance, error: instanceErr } = await sb
+    .from("project_instances")
+    .select("id")
+    .eq("project_id", project.id)
+    .eq("token", token)
+    .single();
+
+  if (instanceErr || !instance) {
     throw createError({ statusCode: 404, statusMessage: "Project not found." });
   }
 

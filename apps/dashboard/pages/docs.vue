@@ -186,7 +186,7 @@ const basicUsage = `import DeadFuse from "@surelle-ha/dead-fuse";
 
 DeadFuse.activate({
   projectId: "YOUR_PROJECT_KEY",
-  token: "YOUR_PUBLIC_TOKEN",
+  token: "YOUR_INSTANCE_TOKEN",
   fallbackMode: "readonly",
 
   onActive:   () => console.log("App is active"),

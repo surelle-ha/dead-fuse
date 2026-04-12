@@ -224,19 +224,18 @@ export class DeadFuseConnection {
     };
 
     try {
-      const { data, error } = await this.supabase
-        .from("projects")
-        .select("state, message")
-        .eq("project_key", this.config.projectId)
-        .eq("public_token", this.config.token)
+      const { data: instance, error: instanceErr } = await this.supabase
+        .from("project_instances")
+        .select("project_id")
+        .eq("token", this.config.token)
         .maybeSingle();
 
-      if (error || !data) {
+      if (instanceErr || !instance?.project_id) {
         console.warn(
           "[DeadFuse] Could not fetch initial state via Supabase:",
-          error ?? "no error object",
-          "data:",
-          data
+          instanceErr ?? "no error object",
+          "instance:",
+          instance
         );
 
         const fallback = await tryDashboardFallback();
@@ -250,8 +249,33 @@ export class DeadFuseConnection {
         return;
       }
 
-      setCurrentState(data.state);
-      dispatchStateEvent(data.state, data.message ?? "", this.config);
+      const { data: project, error: projectErr } = await this.supabase
+        .from("projects")
+        .select("state, message, project_key")
+        .eq("id", instance.project_id)
+        .maybeSingle();
+
+      if (projectErr || !project || project.project_key !== this.config.projectId) {
+        console.warn(
+          "[DeadFuse] Could not fetch initial state via Supabase:",
+          projectErr ?? "no error object",
+          "project:",
+          project
+        );
+
+        const fallback = await tryDashboardFallback();
+        if (fallback) {
+          setCurrentState(fallback.state);
+          dispatchStateEvent(fallback.state, fallback.message ?? "", this.config);
+          return;
+        }
+
+        this._applyFallback();
+        return;
+      }
+
+      setCurrentState(project.state);
+      dispatchStateEvent(project.state, project.message ?? "", this.config);
     } catch (err) {
       console.warn("[DeadFuse] Initial state fetch failed:", err);
       const fallback = await tryDashboardFallback();

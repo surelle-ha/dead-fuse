@@ -125,7 +125,7 @@
                 </div>
 
                 <!-- Monitoring toggle -->
-                <div class="flex items-start justify-between gap-4 pt-2.5 border-t border-white/[0.05]">
+                <div class="flex items-center justify-between gap-4 pt-2.5 border-t border-white/[0.05]">
                   <div class="min-w-0">
                     <p class="text-[10px] font-medium text-fuse-dim">Deployed instance monitoring</p>
                     <p class="text-[9px] text-fuse-muted mt-0.5 leading-relaxed">
@@ -134,7 +134,7 @@
                   </div>
                   <button
                     @click="toggleDeployed(inst)"
-                    class="toggle-track flex-shrink-0 mt-0.5"
+                    class="toggle-track flex-shrink-0"
                     :class="inst.deployed ? 'toggle-on' : 'toggle-off'"
                     role="switch"
                     :aria-checked="inst.deployed"
