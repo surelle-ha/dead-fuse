@@ -1,5 +1,6 @@
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
+import { useSupabaseAdmin } from "./supabase";
 
 export interface JWTPayload {
   id: string;
@@ -36,6 +37,22 @@ export function requireAuth(event: any): JWTPayload {
   } catch {
     throw createError({ statusCode: 401, statusMessage: "Invalid or expired token" });
   }
+}
+
+export async function requireAdmin(event: any): Promise<JWTPayload> {
+  const auth = requireAuth(event);
+  const sb = useSupabaseAdmin();
+  const { data: user, error } = await sb.from("users").select("role").eq("id", auth.id).single();
+
+  if (error || !user) {
+    throw createError({ statusCode: 403, statusMessage: "Admin access required." });
+  }
+
+  if (user.role !== "admin") {
+    throw createError({ statusCode: 403, statusMessage: "Admin access required." });
+  }
+
+  return auth;
 }
 
 function getCookie(event: any, name: string): string | undefined {

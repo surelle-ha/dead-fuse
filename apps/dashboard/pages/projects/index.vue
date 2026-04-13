@@ -28,7 +28,7 @@
         <div class="flex items-center justify-between gap-3">
           <div>
             <p class="text-fuse-red text-xs font-semibold mb-0.5">Project limit reached</p>
-            <p class="text-fuse-red/60 text-[10px]">You're on the Free plan ({{ projectLimit }} projects). Upgrade to create more.</p>
+            <p class="text-fuse-red/60 text-[10px]">You're on the {{ planName.value || 'Free' }} plan ({{ projectLimit.value }} projects). Upgrade to create more.</p>
           </div>
           <NuxtLink to="/pricing" class="btn-upgrade flex-shrink-0">Upgrade →</NuxtLink>
         </div>
@@ -144,7 +144,8 @@ const loading = ref(true)
 const showCreate = ref(false)
 const createLoading = ref(false)
 const createError = ref('')
-const projectLimit = 2
+const projectLimit = ref(2)
+const planName = ref('Free')
 
 const newProject = reactive({
   name: '',
@@ -156,7 +157,7 @@ const newProject = reactive({
   priority: 'medium'
 })
 
-const limitReached = computed(() => projects.value.length >= projectLimit)
+const limitReached = computed(() => projects.value.length >= projectLimit.value)
 
 const projectStats = computed(() => {
   const counts: Record<string, number> = {}
@@ -171,7 +172,9 @@ const projectStats = computed(() => {
 
 onMounted(async () => {
   try {
-    await $fetch('/api/auth/me')
+    const profile = await $fetch<{ projectLimit?: number; planName?: string }>('/api/auth/me')
+    projectLimit.value = profile.projectLimit ?? 2
+    planName.value = profile.planName ?? 'Free'
   } catch {
     router.push('/login')
     return

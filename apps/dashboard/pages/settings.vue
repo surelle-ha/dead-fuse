@@ -136,7 +136,8 @@
           </div>
           <div class="stat-card">
             <span class="stat-label">Plan</span>
-            <span class="stat-value text-xs">Free · 2 projects</span>
+            <span class="stat-value text-xs">{{ me.planName || 'Free' }}</span>
+            <span v-if="me.planExpiresAt" class="text-[10px] text-fuse-dim block">Expires {{ new Date(me.planExpiresAt).toLocaleDateString() }}</span>
           </div>
         </div>
 
@@ -192,13 +193,22 @@ definePageMeta({ middleware: 'auth' })
 const router = useRouter()
 
 // ── Current user ──────────────────────────────────────────────────
-const me = reactive({ email: '', userId: '' })
+const me = reactive({ email: '', userId: '', role: '', planName: '', planExpiresAt: '' })
 
 onMounted(async () => {
   try {
-    const res = await $fetch<{ email: string; userId: string }>('/api/auth/me')
-    me.email  = res.email
+    const res = await $fetch<{
+      email: string
+      userId: string
+      role?: string
+      planName?: string
+      planExpiresAt?: string
+    }>('/api/auth/me')
+    me.email = res.email
     me.userId = res.userId
+    me.role = res.role ?? 'user'
+    me.planName = res.planName ?? 'Free'
+    me.planExpiresAt = res.planExpiresAt ?? ''
   } catch {
     router.push('/login')
   }

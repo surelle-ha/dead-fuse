@@ -24,7 +24,7 @@
           <div class="kpi-card">
             <span class="kpi-label">Total projects</span>
             <span class="kpi-value text-fuse-text">{{ projects.length }}</span>
-            <span class="kpi-sub">/ {{ projectLimit }} limit</span>
+            <span class="kpi-sub">/ {{ projectLimitValue }} limit</span>
           </div>
           <div class="kpi-card">
             <span class="kpi-label">Active</span>
@@ -227,9 +227,9 @@
                 <div class="flex items-center gap-2">
                   <div class="w-16 h-1 rounded-full bg-white/[0.05] overflow-hidden">
                     <div class="h-full rounded-full bg-fuse-red transition-all duration-700"
-                      :style="{ width: (projects.length / projectLimit * 100) + '%' }" />
+                      :style="{ width: utilization + '%' }" />
                   </div>
-                  <span class="text-[10px] font-mono text-fuse-dim">{{ projects.length }}/{{ projectLimit }}</span>
+                  <span class="text-[10px] font-mono text-fuse-dim">{{ projects.length }}/{{ projectLimitValue }} ({{ utilization }}%)</span>
                 </div>
               </div>
             </div>
@@ -247,12 +247,19 @@ definePageMeta({ middleware: 'auth' })
 const projects = ref<any[]>([])
 const loading = ref(true)
 const filterState = ref('')
-const projectLimit = 2
+const projectLimit = ref(2)
+const projectLimitValue = computed(() => projectLimit.value)
+const utilization = computed(() => {
+  const limit = projectLimit.value > 0 ? projectLimit.value : 1
+  return projects.value.length === 0 ? 0 : Math.min(100, Math.round((projects.value.length / limit) * 100))
+})
 
 const allStates = ['ACTIVE','WARNING','READONLY','LIMITED','LOCKED','EXPIRED','SLEEP','SELF_DESTRUCT']
 
 onMounted(async () => {
   try {
+    const profile = await $fetch<{ projectLimit?: number }>('/api/auth/me')
+    projectLimit.value = profile.projectLimit ?? 2
     projects.value = await $fetch<any[]>('/api/projects')
   } finally {
     loading.value = false

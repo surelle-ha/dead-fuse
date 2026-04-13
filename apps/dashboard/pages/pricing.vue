@@ -19,6 +19,40 @@
         </nav>
 
         <main class="max-w-4xl mx-auto px-6 py-16 relative z-10 animate-slide-up">
+            <div v-if="showRequestSlotIncrease" class="max-w-3xl mx-auto">
+                <div class="text-center mb-10">
+                    <div class="inline-flex items-center gap-2 border border-fuse-red/20 bg-fuse-red/[0.06] text-fuse-red text-[10px] font-mono uppercase tracking-widest px-3 py-1 rounded-full mb-4"
+                        style="backdrop-filter: blur(8px);">
+                        Billing coming soon
+                    </div>
+                    <h1 class="text-3xl font-bold text-fuse-text mb-2">Request additional project slots</h1>
+                    <p class="text-fuse-dim text-sm max-w-md mx-auto">The billing page is under development. Submit a slot increase request and we'll follow up with details.</p>
+                </div>
+
+                <div class="panel p-6">
+                    <div class="grid gap-4 mb-5">
+                        <div>
+                            <label class="field-label">Desired additional slots</label>
+                            <input v-model.number="slotRequest.slots" type="number" min="1" class="field-input text-xs" />
+                        </div>
+                        <div>
+                            <label class="field-label">Reason for request</label>
+                            <textarea v-model="slotRequest.message" rows="5" class="field-input text-xs font-mono resize-none" placeholder="Tell us why you need more project slots..."></textarea>
+                        </div>
+                    </div>
+
+                    <div v-if="requestSuccess" class="mb-4 text-fuse-green text-sm font-mono">{{ requestSuccess }}</div>
+                    <div v-if="requestError" class="mb-4 text-fuse-red text-sm font-mono">{{ requestError }}</div>
+
+                    <button @click="requestSlotIncrease"
+                        :disabled="requestLoading || !slotRequest.message.trim()"
+                        class="btn-primary w-full text-sm">
+                        {{ requestLoading ? 'Sending request…' : 'Request slot increase' }}
+                    </button>
+                </div>
+            </div>
+
+            <div v-else>
             <div class="text-center mb-12">
                 <div class="inline-flex items-center gap-2 border border-fuse-red/20 bg-fuse-red/[0.06] text-fuse-red text-[10px] font-mono uppercase tracking-widest px-3 py-1 rounded-full mb-4"
                     style="backdrop-filter: blur(8px);">
@@ -37,7 +71,7 @@
                     :class="billing === 'yearly' ? 'bg-fuse-red/30' : 'bg-white/[0.06]'"
                     style="backdrop-filter: blur(8px);">
                     <span class="absolute top-0.5 w-4 h-4 rounded-full transition-all duration-200"
-                        :class="billing === 'yearly' ? 'left-4 bg-fuse-red' : 'left-0.5 bg-fuse-dim'" />
+                        :class="billing === 'yearly' ? 'left-4 bg-fuse-red' : 'left-0.5 bg-fuse-dim'"></span>
                 </button>
                 <span class="text-xs font-mono" :class="billing === 'yearly' ? 'text-fuse-text' : 'text-fuse-dim'">
                     Yearly
@@ -137,6 +171,7 @@
                 Questions? <a href="mailto:hi@deadfuse.dev"
                     class="text-fuse-dim hover:text-fuse-text transition-colors">hi@deadfuse.dev</a>
             </p>
+        </div>
         </main>
     </div>
 </template>
@@ -145,6 +180,33 @@
 definePageMeta({ layout: false })
 
 const billing = ref<'monthly' | 'yearly'>('monthly')
+const showRequestSlotIncrease = ref(true)
+const slotRequest = reactive({ slots: 3, message: '' })
+const requestLoading = ref(false)
+const requestError = ref('')
+const requestSuccess = ref('')
+
+async function requestSlotIncrease() {
+    requestError.value = ''
+    requestSuccess.value = ''
+    requestLoading.value = true
+
+    try {
+        await $fetch('/api/support', {
+            method: 'POST',
+            body: {
+                subject: 'Limit Increase Request',
+                message: `Requesting ${slotRequest.slots} additional slots.\n\n${slotRequest.message}`,
+            },
+        })
+        requestSuccess.value = 'Your slot increase request has been submitted.'
+        slotRequest.message = ''
+    } catch (err: any) {
+        requestError.value = err?.data?.message || err?.message || 'Failed to submit request.'
+    } finally {
+        requestLoading.value = false
+    }
+}
 
 const plans = [
     {

@@ -90,12 +90,21 @@ export default defineEventHandler(async (event) => {
   if (existingUser) {
     userId = existingUser.id;
   } else {
+    const { count, error: adminCountError } = await sb
+      .from('users')
+      .select('id', { head: true, count: 'exact' })
+      .eq('role', 'admin');
+
+    const existingAdmins = Number(count) || 0;
+    const role = existingAdmins === 0 ? 'admin' : 'user';
+
     const { data: newUser, error: insertErr } = await sb
       .from('users')
       .insert({
         email,
         provider: 'github',
         provider_id: providerId,
+        role,
       })
       .select('id')
       .single();

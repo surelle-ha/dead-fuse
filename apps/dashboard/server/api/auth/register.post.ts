@@ -59,12 +59,22 @@ export default defineEventHandler(async (event) => {
   // Hash password
   const passwordHash = await hashPassword(password);
 
+  // Create user role
+  const { count, error: adminCountError } = await sb
+    .from("users")
+    .select("id", { head: true, count: "exact" })
+    .eq("role", "admin");
+
+  const existingAdmins = Number(count) || 0;
+  const role = existingAdmins === 0 ? "admin" : "user";
+
   // Create user
   const { data: newUser, error: insertErr } = await sb
     .from("users")
     .insert({
       email: email.trim().toLowerCase(),
       password_hash: passwordHash,
+      role,
     })
     .select("id, email")
     .single();

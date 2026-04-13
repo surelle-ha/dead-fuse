@@ -115,27 +115,36 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import { useRoute } from '#imports'
-import { Box, BarChart3, BookOpen, Settings, ChevronLeft, FlaskConical } from 'lucide-vue-next'
+import { useRoute, useFetch } from '#imports'
+import { Box, BarChart3, BookOpen, Settings, ShieldCheck, ChevronLeft, FlaskConical } from 'lucide-vue-next'
 
 const route = useRoute()
 const sidebarExpanded = ref(true)
 const { bubble, toggle } = useSdkTester()
 
+const { data: me } = useFetch<{ role?: string }>('/api/auth/me')
+
 const showSidebar = computed(() =>
   !['/login', '/onboarding', '/pricing'].includes(route.path)
 )
 
-const navItems = [
-  { label: 'Projects',      to: '/projects',  icon: Box },
-  { label: 'Analytics',     to: '/analytics', icon: BarChart3 },
-  { label: 'Documentation', to: '/docs',       icon: BookOpen },
-]
+const navItems = computed(() => {
+  const items = [
+    { label: 'Projects',      to: '/projects',  icon: Box },
+    { label: 'Analytics',     to: '/analytics', icon: BarChart3 },
+    { label: 'Documentation', to: '/docs',       icon: BookOpen },
+  ]
+  if (me.value?.role === 'admin') {
+    items.push({ label: 'Admin', to: '/admin', icon: ShieldCheck })
+  }
+  return items
+})
 
 const pageTitles: Record<string, string> = {
   '/projects':  'Projects',
   '/analytics': 'Analytics',
   '/docs':      'Documentation',
+  '/admin':     'Admin',
   '/settings':  'Settings',
   '/pricing':   'Pricing',
 }
