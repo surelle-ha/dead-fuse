@@ -15,7 +15,7 @@
 **Instruction:**  
 Use this section to understand the monorepo layout. Any new packages or apps must follow this structure and naming convention. Avoid placing unrelated logic outside these directories.
 
-- `packages/client`: client SDK package published as `@surelle-ha/dead-fuse`
+- `packages/dead-fuse`: client SDK package published as `@surelle-ha/dead-fuse`
 - `apps/dashboard`: dashboard application and server API
 
 ---

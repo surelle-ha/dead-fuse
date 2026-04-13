@@ -25,7 +25,7 @@ DeadFuse is designed to be **ethical and professional**:
 ┌─────────────────────────────────────────────────────────────┐
 │                        MONOREPO                             │
 │                                                             │
-│  packages/client          apps/dashboard                    │
+│  packages/dead-fuse      apps/dashboard                    │
 │  ─────────────────         ─────────────────                │
 │  dead-fuse (npm)           Nuxt 3 + Nitro                   │
 │  TypeScript library        PostgreSQL backend               │

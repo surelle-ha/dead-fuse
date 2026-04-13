@@ -2,11 +2,12 @@
   "name": "dead-fuse-monorepo",
   "private": true,
   "scripts": {
-    "dev": "pnpm --filter dashboard dev",
-    "build": "pnpm --filter @surelle-ha/dead-fuse build && pnpm --filter dashboard build",
+    "dev:dashboard": "pnpm --filter dashboard dev",
+    "dev:landing": "pnpm --filter landing dev",
+    "build": "pnpm --filter @surelle-ha/dead-fuse build && pnpm --filter dashboard build && pnpm --filter landing build",
     "build:client": "pnpm --filter @surelle-ha/dead-fuse build",
     "build:dashboard": "pnpm --filter dashboard build",
-    "build:prod": "pnpm build:client && pnpm --filter dashboard build:prod",
+    "build:landing": "pnpm --filter landing build",
     "migrate": "pnpm --filter dashboard migrate",
     "lint": "pnpm -r lint",
     "typecheck": "pnpm -r typecheck"

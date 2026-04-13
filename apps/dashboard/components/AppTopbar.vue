@@ -43,7 +43,7 @@
           <!-- User info -->
           <div class="px-3 py-2.5 border-b border-white/[0.06]">
             <p class="text-[11px] font-medium text-fuse-text truncate">{{ userEmail || 'Loading…' }}</p>
-            <p class="text-[9px] font-mono text-fuse-muted mt-0.5 tracking-wide">Free plan · 2 project limit</p>
+            <p class="text-[9px] font-mono text-fuse-muted mt-0.5 tracking-wide">{{ planName || 'Free' }} plan · {{ projectLimit || 2 }} project limit</p>
           </div>
 
           <!-- Actions -->
@@ -79,12 +79,16 @@ const router   = useRouter()
 const open     = ref(false)
 const menuRef  = ref<HTMLElement | null>(null)
 const userEmail = ref('')
+const planName = ref('Free')
+const projectLimit = ref(2)
 
 // Self-fetch so we're not reliant on async prop propagation timing
 onMounted(async () => {
   try {
-    const me = await $fetch<{ email: string }>('/api/auth/me')
+    const me = await $fetch<{ email: string; planName?: string; projectLimit?: number }>('/api/auth/me')
     userEmail.value = me.email
+    planName.value = me.planName ?? 'Free'
+    projectLimit.value = me.projectLimit ?? 2
   } catch {}
   document.addEventListener('click', handleOutside)
 })

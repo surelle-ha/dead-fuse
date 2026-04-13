@@ -55,7 +55,33 @@ export default defineEventHandler(async (event) => {
       throw createError({ statusCode: 500, statusMessage: countError.message });
     }
 
-    if ((existingProjects || []).length >= 2) {
+    const { data: user, error: userError } = await sb
+      .from("users")
+      .select("plan_id, project_limit")
+      .eq("id", auth.id)
+      .single();
+
+    if (userError || !user) {
+      throw createError({ statusCode: 404, statusMessage: "User not found." });
+    }
+
+    let planLimit: number | null = null;
+
+    if (user.plan_id) {
+      const { data: plan } = await sb
+        .from("pricing_plans")
+        .select("project_limit")
+        .eq("id", user.plan_id)
+        .single();
+
+      if (plan) {
+        planLimit = plan.project_limit;
+      }
+    }
+
+    const effectiveLimit = Math.max(user.project_limit ?? 0, planLimit ?? 0, 2);
+
+    if ((existingProjects || []).length >= effectiveLimit) {
       throw createError({
         statusCode: 403,
         statusMessage: "Project limit reached. Upgrade to create more projects.",
