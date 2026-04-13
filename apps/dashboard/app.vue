@@ -25,7 +25,7 @@
         <ChevronLeft v-if="sidebarExpanded" class="w-3 h-3 text-fuse-muted flex-shrink-0 ml-auto" />
       </div>
 
-      <!-- Nav — scrollable -->
+      <!-- Nav -->
       <nav class="flex-1 flex flex-col gap-0.5 p-2 pt-2.5 overflow-y-auto">
         <NuxtLink
           v-for="item in navItems"
@@ -42,11 +42,11 @@
 
         <div class="my-1.5 border-t border-white/[0.04] mx-1" />
 
-        <!-- SDK Tester — opens bubble, highlights when active -->
+        <!-- SDK Tester bubble toggle -->
         <button
-          @click="toggleBubble"
+          @click="toggle()"
           class="nav-item w-full text-left"
-          :class="bubble.visible && bubble.open ? 'nav-item--active' : 'nav-item--idle'"
+          :class="bubble.open ? 'nav-item--active' : 'nav-item--idle'"
           :title="!sidebarExpanded ? 'SDK Tester' : undefined"
         >
           <FlaskConical class="nav-icon" />
@@ -91,7 +91,7 @@
             class="transition-colors" :class="isActive(item.to) ? 'text-fuse-red' : 'text-fuse-muted hover:text-fuse-text'">
             <component :is="item.icon" class="w-4 h-4" />
           </NuxtLink>
-          <button @click="toggleBubble" class="transition-colors" :class="bubble.open ? 'text-fuse-green' : 'text-fuse-muted hover:text-fuse-text'">
+          <button @click="toggle()" class="transition-colors" :class="bubble.open ? 'text-fuse-green' : 'text-fuse-muted hover:text-fuse-text'">
             <FlaskConical class="w-4 h-4" />
           </button>
           <NuxtLink to="/settings" class="text-fuse-muted hover:text-fuse-text transition-colors">
@@ -120,7 +120,7 @@ import { Box, BarChart3, BookOpen, Settings, ChevronLeft, FlaskConical } from 'l
 
 const route = useRoute()
 const sidebarExpanded = ref(true)
-const { bubble, toggle: toggleBubble } = useSdkTester()
+const { bubble, toggle } = useSdkTester()
 
 const showSidebar = computed(() =>
   !['/login', '/onboarding', '/pricing'].includes(route.path)
@@ -133,12 +133,11 @@ const navItems = [
 ]
 
 const pageTitles: Record<string, string> = {
-  '/projects':   'Projects',
-  '/analytics':  'Analytics',
-  '/docs':       'Documentation',
-  '/settings':   'Settings',
-  '/pricing':    'Pricing',
-  '/sdk-tester': 'SDK Tester',
+  '/projects':  'Projects',
+  '/analytics': 'Analytics',
+  '/docs':      'Documentation',
+  '/settings':  'Settings',
+  '/pricing':   'Pricing',
 }
 
 const pageTitle = computed(() => {

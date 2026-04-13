@@ -39,7 +39,7 @@
             <p class="text-fuse-muted text-[10px] mb-4 leading-relaxed">
               Changing state broadcasts to <strong class="text-fuse-dim">all instances</strong> of this project simultaneously.
             </p>
-            <StateToggle :current="project.state" @change="updateState" :loading="stateLoading" />
+            <StateToggle :current="project.state" @change="onStateChange" :loading="stateLoading" />
           </div>
 
           <!-- Client message -->
@@ -102,18 +102,31 @@
                 <div class="flex items-center justify-between gap-3 mb-3">
                   <div class="flex items-center gap-2.5 min-w-0">
                     <span class="env-badge" :class="envBadgeClass(inst.env)">{{ inst.env }}</span>
-                    <span class="text-xs font-semibold text-fuse-text truncate">{{ inst.label }}</span>
-                    <div v-if="inst.alert" class="flex items-center gap-1 text-[9px] font-mono text-fuse-red bg-fuse-red/[0.08] border border-fuse-red/20 px-1.5 py-0.5 rounded-full">
-                      <span class="w-1 h-1 rounded-full bg-fuse-red inline-block" />
-                      SDK removed?
-                    </div>
+                    <!-- Label — inline editable -->
+                    <template v-if="renamingId === inst.id">
+                      <input
+                        v-model="renameLabel"
+                        class="field-input text-xs flex-1 py-1 px-2"
+                        style="min-width:0"
+                        @keydown.enter="submitRename(inst)"
+                        @keydown.escape="cancelRename"
+                        ref="renameInputRef"
+                      />
+                      <button @click="submitRename(inst)" class="text-[10px] font-mono text-fuse-green border border-fuse-green/30 rounded px-2 py-0.5 hover:bg-fuse-green/10 transition-colors">Save</button>
+                      <button @click="cancelRename" class="text-[10px] font-mono text-fuse-muted border border-white/[0.08] rounded px-2 py-0.5 hover:text-fuse-dim transition-colors">Cancel</button>
+                    </template>
+                    <template v-else>
+                      <span class="text-xs font-semibold text-fuse-text truncate">{{ inst.label }}</span>
+                      <div v-if="inst.alert" class="flex items-center gap-1 text-[9px] font-mono text-fuse-red bg-fuse-red/[0.08] border border-fuse-red/20 px-1.5 py-0.5 rounded-full">
+                        <span class="w-1 h-1 rounded-full bg-fuse-red inline-block" />
+                        No signal
+                      </div>
+                    </template>
                   </div>
                   <div class="flex items-center gap-1 flex-shrink-0">
+                    <button @click="startRename(inst)" class="icon-btn" title="Rename"><Pencil class="w-3 h-3" /></button>
                     <button @click="copyToken(inst.token)" class="icon-btn" title="Copy token"><Copy class="w-3 h-3" /></button>
-                    <button
-                      @click="openTester(inst)"
-                      class="icon-btn" title="Test this instance"
-                    ><FlaskConical class="w-3 h-3" /></button>
+                    <button @click="openTester(inst)" class="icon-btn" title="Test this instance"><FlaskConical class="w-3 h-3" /></button>
                     <button @click="confirmRemoveInstance(inst)" class="icon-btn hover:!text-fuse-red" title="Remove"><Trash2 class="w-3 h-3" /></button>
                   </div>
                 </div>
@@ -124,14 +137,15 @@
                   <button @click="copyToken(inst.token)" class="text-[9px] font-mono text-fuse-muted hover:text-fuse-dim border border-white/[0.06] rounded px-1.5 py-0.5 flex-shrink-0 transition-colors">Copy</button>
                 </div>
 
-                <!-- Monitoring toggle -->
+                <!-- Monitoring toggle + connection status -->
                 <div class="flex items-center justify-between gap-4 pt-2.5 border-t border-white/[0.05]">
                   <div class="min-w-0">
-                    <p class="text-[10px] font-medium text-fuse-dim">Deployed instance monitoring</p>
+                    <p class="text-[10px] font-medium text-fuse-dim">Deployed monitoring</p>
                     <p class="text-[9px] text-fuse-muted mt-0.5 leading-relaxed">
-                      When enabled, DeadFuse pings this instance. If uptime pings arrive but no SDK heartbeat, you'll be alerted the SDK may have been removed.
+                      Track when this instance was last seen by the DeadFuse SDK.
                     </p>
                   </div>
+                  <!-- FIX: toggle-thumb uses left: fixed values, not transform, so it can't escape -->
                   <button
                     @click="toggleDeployed(inst)"
                     class="toggle-track flex-shrink-0"
@@ -139,24 +153,28 @@
                     role="switch"
                     :aria-checked="inst.deployed"
                   >
-                    <span class="toggle-thumb" :style="inst.deployed ? 'transform:translateX(18px)' : 'transform:translateX(2px)'" />
+                    <span class="toggle-thumb" />
                   </button>
                 </div>
 
-                <!-- Ping status -->
+                <!-- Connection info (replaces uptime/sdk ping) -->
                 <div v-if="inst.deployed" class="mt-2.5 grid grid-cols-2 gap-2">
                   <div class="flex items-center gap-1.5 bg-black/20 rounded-lg px-2.5 py-1.5">
-                    <span class="w-1.5 h-1.5 rounded-full flex-shrink-0" :class="inst.uptime_ping ? 'bg-fuse-green' : 'bg-white/20'" />
+                    <span class="w-1.5 h-1.5 rounded-full flex-shrink-0" :class="getConnectionStatus().connected ? 'bg-fuse-green animate-pulse' : 'bg-white/20'" />
                     <div>
-                      <p class="text-[9px] font-mono text-fuse-muted">Uptime ping</p>
-                      <p class="text-[10px] font-mono" :class="inst.uptime_ping ? 'text-fuse-green' : 'text-fuse-muted'">{{ inst.uptime_ping ? 'Receiving' : 'No signal' }}</p>
+                      <p class="text-[9px] font-mono text-fuse-muted">Current connection</p>
+                      <p class="text-[10px] font-mono" :class="getConnectionStatus().connected ? 'text-fuse-green' : 'text-fuse-muted'">
+                        {{ getConnectionStatus().connected ? 'Connected' : 'Not connected' }}
+                      </p>
                     </div>
                   </div>
                   <div class="flex items-center gap-1.5 bg-black/20 rounded-lg px-2.5 py-1.5">
-                    <span class="w-1.5 h-1.5 rounded-full flex-shrink-0" :class="inst.sdk_ping ? 'bg-fuse-blue' : 'bg-white/20'" />
+                    <span class="w-1.5 h-1.5 rounded-full flex-shrink-0 bg-fuse-blue/50" />
                     <div>
-                      <p class="text-[9px] font-mono text-fuse-muted">SDK heartbeat</p>
-                      <p class="text-[10px] font-mono" :class="inst.sdk_ping ? 'text-fuse-blue' : 'text-fuse-muted'">{{ inst.sdk_ping ? 'Active' : 'No signal' }}</p>
+                      <p class="text-[9px] font-mono text-fuse-muted">Last detected</p>
+                      <p class="text-[10px] font-mono text-fuse-dim">
+                        {{ getLastDetected() }}
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -182,17 +200,31 @@
 
           <!-- Live clients -->
           <div class="panel">
-            <div class="flex items-center gap-2 mb-2">
-              <span class="w-1.5 h-1.5 rounded-full flex-shrink-0" :class="wsConnected ? 'bg-fuse-green animate-pulse' : 'bg-fuse-muted'" />
-              <h2 class="panel-title mb-0">{{ wsConnected ? `${connectedClients} client${connectedClients !== 1 ? 's' : ''} live` : 'No clients live' }}</h2>
+            <div class="flex items-center gap-2 mb-3">
+              <!-- dot and title on the same baseline -->
+              <span
+                class="inline-block w-1.5 h-1.5 rounded-full flex-shrink-0 mt-px"
+                :class="wsConnected ? 'bg-fuse-green animate-pulse' : 'bg-fuse-muted'"
+              />
+              <span class="text-[10px] font-mono uppercase tracking-widest text-fuse-muted">
+                {{ wsConnected ? `${connectedClients} client${connectedClients !== 1 ? 's' : ''} live` : 'No clients live' }}
+              </span>
             </div>
             <p class="text-fuse-muted text-[10px] leading-relaxed mb-3">
               {{ wsConnected ? 'State changes broadcast instantly.' : 'No SDK connections detected. Add an instance and deploy the SDK.' }}
             </p>
-            <div v-if="clientHosts.length > 0" class="space-y-1">
-              <div v-for="c in clientHosts" :key="c.clientId" class="flex items-center justify-between text-[10px] font-mono py-1 border-b border-white/[0.04] last:border-0">
-                <span class="text-fuse-dim truncate">{{ c.host || c.clientId }}</span>
-                <span class="text-fuse-muted flex-shrink-0 ml-2">{{ relTime(c.lastSeen) }}</span>
+            <div v-if="dedupedHosts.length > 0" class="space-y-1.5">
+              <div
+                v-for="c in dedupedHosts"
+                :key="c.host"
+                class="flex items-start gap-2 py-1.5 border-b border-white/[0.04] last:border-0"
+              >
+                <span class="w-1.5 h-1.5 rounded-full flex-shrink-0 bg-fuse-green mt-[3px]" />
+                <div class="flex-1 min-w-0">
+                  <p class="text-[10px] font-mono text-fuse-dim truncate">{{ c.host }}</p>
+                  <p v-if="c.instanceLabel" class="text-[9px] font-mono text-fuse-muted mt-0.5">{{ c.instanceLabel }}</p>
+                </div>
+                <span class="text-[9px] font-mono text-fuse-muted flex-shrink-0 mt-px">{{ relTime(c.lastSeen) }}</span>
               </div>
             </div>
           </div>
@@ -223,8 +255,8 @@
                 </select>
               </div>
               <div class="code-block relative">
-                <button @click="copy(snippet, 'snippet')" class="copy-btn absolute top-2 right-2">{{ copied === 'snippet' ? '✓' : 'Copy' }}</button>
-                <pre class="text-[10px] text-fuse-dim font-mono p-3 overflow-x-auto whitespace-pre pr-12 leading-relaxed">{{ snippet }}</pre>
+                <button @click="copy(snippetRaw, 'snippet')" class="copy-btn absolute top-2 right-2 z-10">{{ copied === 'snippet' ? '✓' : 'Copy' }}</button>
+                <pre class="text-[10px] font-mono p-3 overflow-x-auto whitespace-pre pr-12 leading-relaxed" v-html="snippetHighlighted" />
               </div>
             </div>
           </div>
@@ -316,6 +348,47 @@
       </div>
     </Teleport>
 
+    <!-- ── State message modal (shown when toggling to WARNING or LOCKED) ── -->
+    <Teleport to="body">
+      <div v-if="pendingState" class="fixed inset-0 z-50 flex items-center justify-center p-4"
+        style="background:rgba(0,0,0,0.8);backdrop-filter:blur(12px);"
+        @click.self="cancelPendingState">
+        <div class="glass-modal w-full max-w-sm animate-slide-up">
+          <div class="px-5 py-4 border-b border-white/[0.06]">
+            <div class="flex items-center gap-2 mb-0.5">
+              <span class="w-2 h-2 rounded-full flex-shrink-0" :class="pendingStateDot" />
+              <h2 class="text-sm font-bold text-fuse-text">Set client message</h2>
+            </div>
+            <p class="text-fuse-muted text-[10px]">
+              Switching to <code class="font-mono text-fuse-dim">{{ pendingState }}</code> — add an optional message shown to users.
+            </p>
+          </div>
+          <div class="p-5 space-y-4">
+            <div class="field-group">
+              <label class="field-label">Message <span class="text-fuse-muted normal-case tracking-normal font-sans">(optional)</span></label>
+              <input
+                v-model="pendingMessage"
+                type="text"
+                class="field-input text-xs"
+                :placeholder="pendingStatePlaceholder"
+                @keydown.enter="confirmStateChange"
+                ref="msgModalInputRef"
+              />
+            </div>
+            <p class="text-[10px] text-fuse-muted leading-relaxed">
+              Leave blank to keep the existing message, or type a new one. This will immediately broadcast to all connected clients.
+            </p>
+            <div class="flex gap-2">
+              <button @click="cancelPendingState" class="btn-ghost flex-1 text-xs">Cancel</button>
+              <button @click="confirmStateChange" :disabled="stateLoading" class="btn-primary flex-1 text-xs">
+                {{ stateLoading ? 'Applying…' : `Switch to ${pendingState}` }}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </Teleport>
+
     <!-- Toast -->
     <Transition enter-active-class="transition-all duration-200" enter-from-class="opacity-0 translate-y-2" leave-active-class="transition-all duration-150" leave-to-class="opacity-0 translate-y-2">
       <div v-if="toast" class="fixed bottom-5 right-5 px-4 py-2 rounded-lg text-xs font-mono border z-50"
@@ -327,7 +400,7 @@
 </template>
 
 <script setup lang="ts">
-import { Plus, Copy, Trash2, FlaskConical, Server } from 'lucide-vue-next'
+import { Plus, Copy, Trash2, FlaskConical, Server, Pencil } from 'lucide-vue-next'
 
 definePageMeta({ middleware: 'auth' })
 
@@ -350,18 +423,107 @@ const clientHosts      = ref<any[]>([])
 const toast            = ref<{ text: string; type: 'success'|'error' } | null>(null)
 const showDeleteConfirm = ref(false)
 const deleteLoading    = ref(false)
-let toastTimer: ReturnType<typeof setTimeout> | null = null
-let pollTimer:  ReturnType<typeof setInterval>  | null = null
+let toastTimer:    ReturnType<typeof setTimeout>  | null = null
+let realtimeUnsub: (() => void) | null = null
 
-// ── Instances (from API) ──────────────────────────────────────────
-const instances       = ref<any[]>([])
+// ── Pending state (message modal) ────────────────────────────────
+// States that require/suggest a message before applying
+const MESSAGE_STATES = new Set(['WARNING', 'LOCKED'])
+const pendingState   = ref<string | null>(null)
+const pendingMessage = ref('')
+const msgModalInputRef = ref<HTMLInputElement | null>(null)
+
+const pendingStateDot = computed(() => {
+  const m: Record<string, string> = {
+    WARNING: 'bg-fuse-yellow', LOCKED: 'bg-fuse-red',
+  }
+  return m[pendingState.value ?? ''] ?? 'bg-fuse-muted'
+})
+const pendingStatePlaceholder = computed(() => {
+  if (pendingState.value === 'WARNING') return 'Invoice #1042 overdue — please contact support.'
+  if (pendingState.value === 'LOCKED')  return 'Access suspended — please settle your invoice.'
+  return 'Enter a message for your clients…'
+})
+
+function onStateChange(s: string) {
+  if (MESSAGE_STATES.has(s)) {
+    // Show the message modal first
+    pendingState.value   = s
+    pendingMessage.value = message.value // pre-fill with current message
+    nextTick(() => { msgModalInputRef.value?.focus() })
+  } else {
+    updateState(s)
+  }
+}
+
+function cancelPendingState() {
+  pendingState.value   = null
+  pendingMessage.value = ''
+}
+
+async function confirmStateChange() {
+  if (!pendingState.value) return
+  const targetState = pendingState.value
+  const targetMsg   = pendingMessage.value
+
+  // Update local message ref so it stays in sync
+  if (targetMsg) message.value = targetMsg
+
+  pendingState.value   = null
+  pendingMessage.value = ''
+
+  await updateState(targetState, targetMsg || undefined)
+}
+
+// ── Instances ─────────────────────────────────────────────────────
+const instances        = ref<any[]>([])
 const instancesLoading = ref(false)
-const showAddInstance = ref(false)
-const instanceLoading = ref(false)
-const instanceError   = ref('')
-const envTypes        = ['dev','qa','staging','prod','custom']
-const newInst         = reactive({ env: 'dev', label: '' })
-const snippetId       = ref('')
+const showAddInstance  = ref(false)
+const instanceLoading  = ref(false)
+const instanceError    = ref('')
+const envTypes         = ['dev','qa','staging','prod','custom']
+const newInst          = reactive({ env: 'dev', label: '' })
+const snippetId        = ref('')
+
+// Rename state
+const renamingId      = ref<string | null>(null)
+const renameLabel     = ref('')
+const renameInputRef  = ref<HTMLInputElement | null>(null)
+
+function startRename(inst: any) {
+  renamingId.value  = inst.id
+  renameLabel.value = inst.label
+  nextTick(() => {
+    if (renameInputRef.value) {
+      const el = Array.isArray(renameInputRef.value) ? renameInputRef.value[0] : renameInputRef.value
+      el?.focus()
+      el?.select()
+    }
+  })
+}
+
+function cancelRename() {
+  renamingId.value  = null
+  renameLabel.value = ''
+}
+
+async function submitRename(inst: any) {
+  const label = renameLabel.value.trim()
+  if (!label) { cancelRename(); return }
+  if (label === inst.label) { cancelRename(); return }
+  try {
+    const updated = await $fetch<any>(`/api/projects/${id}/instances/${inst.id}`, {
+      method: 'PATCH',
+      body: { label },
+    })
+    Object.assign(inst, updated)
+    showToast('Instance renamed', 'success')
+  } catch {
+    showToast('Failed to rename', 'error')
+  } finally {
+    cancelRename()
+  }
+}
 
 async function loadInstances() {
   instancesLoading.value = true
@@ -437,12 +599,127 @@ function envBadgeClass(env: string) {
   return m[env] ?? 'bg-white/[0.04] text-fuse-dim border-white/[0.08]'
 }
 
+// ── Connection helpers ────────────────────────────────────────────
+// lastSeenEver persists the most recent timestamp we've ever observed
+// from clientHosts, so "last detected" survives across polling cycles
+// even when no clients are currently connected.
+const lastSeenEver = ref<number | null>(null)
+
+// Called on every presence sync — persists the most recent ts seen
+function updateLastSeen() {
+  if (clientHosts.value.length === 0) return
+  const ts = Math.max(...clientHosts.value.map((c: any) => c.lastSeen))
+  if (ts && (!lastSeenEver.value || ts > lastSeenEver.value)) {
+    lastSeenEver.value = ts
+  }
+}
+
+function getConnectionStatus(): { connected: boolean } {
+  // If presence has any entries, the SDK is connected RIGHT NOW.
+  // No timestamp staleness check needed — presence is live.
+  return { connected: wsConnected.value }
+}
+
+function getLastDetected(): string {
+  if (lastSeenEver.value) return relTime(lastSeenEver.value)
+  return 'Never'
+}
+
+// Deduplicated host list for the Live clients card.
+// Multiple presence entries from the same origin are collapsed to one row.
+// Each row resolves its instance label by matching the presence token.
+const dedupedHosts = computed(() => {
+  const seen = new Map<string, {
+    host: string
+    token: string | null
+    instanceLabel: string | null
+    lastSeen: number
+  }>()
+
+  for (const c of clientHosts.value) {
+    const key = c.host ?? c.clientId
+    const existing = seen.get(key)
+    if (!existing || c.lastSeen > existing.lastSeen) {
+      const matchedInst = instances.value.find((i: any) => i.token === c.token)
+      seen.set(key, {
+        host:          c.host ?? 'Unknown origin',
+        token:         c.token,
+        instanceLabel: matchedInst ? `${matchedInst.label} (${matchedInst.env})` : null,
+        lastSeen:      c.lastSeen,
+      })
+    }
+  }
+
+  return Array.from(seen.values()).sort((a, b) => b.lastSeen - a.lastSeen)
+})
+
 // ── Snippet ───────────────────────────────────────────────────────
-const snippet = computed(() => {
+const snippetRaw = computed(() => {
   if (!project.value) return ''
   const inst  = instances.value.find(i => i.id === snippetId.value)
   const token = inst?.token ?? '<instance-token>'
-  return `import DeadFuse from "dead-fuse";\n\nDeadFuse.activate({\n  projectId: "${project.value.project_key}",\n  token: "${token}",\n  fallbackMode: "readonly",\n  onActive:   () => console.log("Active"),\n  onWarning:  (msg) => showBanner(msg),\n  onReadonly: () => showNotice("Read-only mode"),\n  onLocked:   (msg) => { console.error(msg); },\n});`
+  return [
+    `import DeadFuse from "@surelle-ha/dead-fuse";`,
+    ``,
+    `DeadFuse.activate({`,
+    `  projectId: "${project.value.project_key}",`,
+    `  token: "${token}",`,
+    `  fallbackMode: "readonly",`,
+    ``,
+    `  onActive:   () => console.log("Active"),`,
+    `  onWarning:  (msg) => showBanner(msg),`,
+    `  onReadonly: () => showNotice("Read-only mode"),`,
+    `  onLimited:  () => disablePremiumFeatures(),`,
+    `  onLocked:   (msg) => { document.body.innerHTML = \`<h1>\${msg}</h1>\`; },`,
+    `  onExpired:  () => showPage("Contract expired."),`,
+    `  onSleep:    () => showMaintenancePage(),`,
+    `});`,
+  ].join('\n')
+})
+
+// Minimal syntax highlighter — no external deps, pure regex substitution.
+// Order matters: strings first, then keywords, then properties, then comments.
+const snippetHighlighted = computed(() => {
+  if (!snippetRaw.value) return ''
+
+  // Escape HTML first
+  let code = snippetRaw.value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+
+  // Template literals (backtick strings) — colour as strings
+  code = code.replace(/`[^`]*`/g, m => `<span class="hl-str">${m}</span>`)
+
+  // Regular strings (single and double quote)
+  code = code.replace(/"(?:[^"\\]|\\.)*"/g, m => `<span class="hl-str">${m}</span>`)
+  code = code.replace(/'(?:[^'\\]|\\.)*'/g, m => `<span class="hl-str">${m}</span>`)
+
+  // Keywords
+  const keywords = ['import', 'from', 'const', 'let', 'var', 'return', 'new', 'function', 'async', 'await']
+  keywords.forEach(kw => {
+    code = code.replace(new RegExp(`\\b(${kw})\\b`, 'g'), `<span class="hl-kw">$1</span>`)
+  })
+
+  // Object property keys (word followed by colon, not inside a string span)
+  code = code.replace(/(<span[^>]*>.*?<\/span>)|(\b\w+)(?=\s*:)/g, (m, span, prop) => {
+    if (span) return span  // already highlighted — leave alone
+    return `<span class="hl-prop">${prop}</span>`
+  })
+
+  // DeadFuse identifier
+  code = code.replace(/\bDeadFuse\b/g, '<span class="hl-class">DeadFuse</span>')
+
+  // Arrow functions / punctuation — parentheses, braces
+  code = code.replace(/([(){}])/g, '<span class="hl-punct">$1</span>')
+
+  // Numbers
+  code = code.replace(/\b(\d+)\b/g, '<span class="hl-num">$1</span>')
+
+  // Comments //
+  code = code.replace(/(\/\/.*)$/gm, '<span class="hl-comment">$1</span>')
+
+  return code
 })
 
 // ── Lifecycle ─────────────────────────────────────────────────────
@@ -453,25 +730,77 @@ onMounted(async () => {
     gracePeriod.value = project.value.grace_period
   } catch { notFound.value = true; return }
   await loadInstances()
-  await pollClients()
-  pollTimer = setInterval(pollClients, 5000)
+  await subscribePresence()
 })
-onUnmounted(() => { if (pollTimer) clearInterval(pollTimer) })
 
-async function pollClients() {
-  if (!project.value) return
+onUnmounted(() => {
+  realtimeUnsub?.()
+})
+
+// ── Realtime presence — subscribe to the same channel the SDK uses ─
+// The SDK calls channel.track() after subscribing, so we can watch
+// presenceState() to see exactly who is currently connected.
+// This works regardless of whether _registerClient() succeeded.
+async function subscribePresence() {
+  if (!project.value?.project_key) return
+
+  // Fetch Supabase credentials from the dashboard's own /api/config endpoint
+  let supabaseUrl: string
+  let supabaseAnonKey: string
   try {
-    const res = await $fetch<{ connected: number; clients: any[] }>(`/api/projects/${id}/clients`)
-    connectedClients.value = res.connected
-    clientHosts.value      = res.clients ?? []
-    wsConnected.value      = res.connected > 0
-  } catch { wsConnected.value = false; connectedClients.value = 0; clientHosts.value = [] }
+    const cfg = await $fetch<{ supabaseUrl: string; supabaseAnonKey: string }>('/api/config')
+    supabaseUrl    = cfg.supabaseUrl
+    supabaseAnonKey = cfg.supabaseAnonKey
+  } catch (e) {
+    console.warn('[Dashboard] Could not fetch Supabase config for presence:', e)
+    return
+  }
+
+  const { createClient } = await import('@supabase/supabase-js')
+  const sb = createClient(supabaseUrl, supabaseAnonKey, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  })
+
+  const channelName = `project:${project.value.project_key}`
+  const channel = sb.channel(channelName)
+
+  function refreshPresence() {
+    const state = channel.presenceState<{ projectId: string; token?: string; ts: number; host?: string }>()
+    const presences = Object.values(state).flat() as any[]
+    connectedClients.value = presences.length
+    wsConnected.value      = presences.length > 0
+
+    clientHosts.value = presences.map((p, i) => ({
+      clientId:  p.token ?? `presence-${i}`,
+      token:     p.token  ?? null,
+      host:      p.host   ?? null,
+      lastSeen:  p.ts     ?? Date.now(),
+    }))
+
+    updateLastSeen()
+  }
+
+  channel
+    .on('presence', { event: 'sync' },  refreshPresence)
+    .on('presence', { event: 'join' },  refreshPresence)
+    .on('presence', { event: 'leave' }, refreshPresence)
+    .subscribe()
+
+  realtimeUnsub = () => {
+    sb.removeChannel(channel)
+  }
 }
 
 // ── API actions ───────────────────────────────────────────────────
-async function updateState(s: string) {
+async function updateState(s: string, msg?: string) {
   stateLoading.value = true
-  try { project.value = await $fetch(`/api/projects/${id}/state`, { method: 'POST', body: { state: s, message: message.value } }); showToast(`State → ${s}`, 'success') }
+  try {
+    project.value = await $fetch(`/api/projects/${id}/state`, {
+      method: 'POST',
+      body: { state: s, message: msg !== undefined ? msg : message.value },
+    })
+    showToast(`State → ${s}`, 'success')
+  }
   catch (e: any) { showToast(e?.data?.statusMessage || 'Failed', 'error') }
   finally { stateLoading.value = false }
 }
@@ -543,13 +872,60 @@ function relTime(ts: number) {
 .instance-card--alert { border-color:rgba(255,51,51,0.2); background:rgba(255,51,51,0.025); }
 .env-badge { @apply text-[9px] font-mono font-bold uppercase tracking-widest px-1.5 py-0.5 rounded border flex-shrink-0; }
 
-.toggle-track { position:relative; width:38px; height:22px; border-radius:11px; border:1px solid; transition:background 0.2s,border-color 0.2s; cursor:pointer; outline:none; }
-.toggle-track:focus-visible { box-shadow:0 0 0 2px rgba(255,51,51,0.4); }
-.toggle-on  { background:rgba(0,255,136,0.18); border-color:rgba(0,255,136,0.35); }
-.toggle-off { background:rgba(255,255,255,0.05); border-color:rgba(255,255,255,0.12); }
-.toggle-thumb { position:absolute; top:50%; margin-top:-8px; width:16px; height:16px; border-radius:50%; transition:transform 0.2s cubic-bezier(0.4,0,0.2,1),background 0.2s; pointer-events:none; }
-.toggle-on  .toggle-thumb { background:#00ff88; }
-.toggle-off .toggle-thumb { background:#555; }
+/* ── Toggle — FIXED ─────────────────────────────────────────────── */
+/*
+  Previously the thumb used `transform: translateX()` set via inline style,
+  but the on/off classes also set `transform` via tailwind, causing a fight.
+  Now we use a pure CSS approach: the thumb is absolutely positioned, and
+  `.toggle-on .toggle-thumb` / `.toggle-off .toggle-thumb` move it via `left`.
+  No inline styles needed on the thumb at all.
+*/
+.toggle-track {
+  position: relative;
+  width: 38px;
+  height: 22px;
+  border-radius: 11px;
+  border: 1px solid;
+  transition: background 0.2s, border-color 0.2s;
+  cursor: pointer;
+  outline: none;
+  flex-shrink: 0;
+}
+.toggle-track:focus-visible { box-shadow: 0 0 0 2px rgba(255,51,51,0.4); }
+
+.toggle-on  { background: rgba(0,255,136,0.18); border-color: rgba(0,255,136,0.35); }
+.toggle-off { background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.12); }
+
+.toggle-thumb {
+  position: absolute;
+  top: 50%;
+  margin-top: -8px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  transition: left 0.2s cubic-bezier(0.4,0,0.2,1), background 0.2s;
+  pointer-events: none;
+}
+
+/* ON: thumb on the right */
+.toggle-on .toggle-thumb {
+  left: 18px;
+  background: #00ff88;
+}
+/* OFF: thumb on the left */
+.toggle-off .toggle-thumb {
+  left: 2px;
+  background: #555555;
+}
+
+/* ── Syntax highlight ─────────────────────────────────────────────── */
+.hl-kw      { color: #cc44ff; }          /* purple  — keywords */
+.hl-str     { color: #00ff88; }          /* green   — strings */
+.hl-prop    { color: #4488ff; }          /* blue    — object keys / callbacks */
+.hl-class   { color: #ff8c00; }          /* orange  — DeadFuse identifier */
+.hl-num     { color: #ffd700; }          /* yellow  — numbers */
+.hl-punct   { color: #ababab; }          /* dim     — brackets */
+.hl-comment { color: #555555; font-style: italic; } /* muted  — comments */
 
 .glass-modal { @apply rounded-2xl border border-white/[0.1]; background:rgba(14,14,14,0.96); backdrop-filter:blur(24px); box-shadow:0 24px 64px rgba(0,0,0,0.6); }
 </style>

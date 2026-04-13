@@ -2,34 +2,6 @@
   <div class="min-h-screen bg-fuse-black">
     <main class="max-w-2xl mx-auto px-6 py-8 animate-slide-up space-y-5">
 
-      <!-- Profile -->
-      <div class="panel">
-        <h2 class="panel-title">Profile</h2>
-        <p class="text-fuse-dim text-xs mb-4">Your display email and account identity.</p>
-
-        <div class="space-y-3">
-          <div class="field-group">
-            <label class="field-label">Email address</label>
-            <input
-              v-model="profile.email"
-              type="email"
-              class="field-input"
-              placeholder="you@example.com"
-              :disabled="profile.loading"
-            />
-          </div>
-
-          <div v-if="profile.success" class="notice notice--success">{{ profile.success }}</div>
-          <div v-if="profile.error"   class="notice notice--error">{{ profile.error }}</div>
-
-          <div class="flex justify-end">
-            <button @click="saveProfile" :disabled="profile.loading" class="btn-primary text-xs px-5">
-              {{ profile.loading ? 'Saving…' : 'Save profile' }}
-            </button>
-          </div>
-        </div>
-      </div>
-
       <!-- Password -->
       <div class="panel">
         <h2 class="panel-title">Change password</h2>
@@ -112,7 +84,7 @@
               role="switch"
               :aria-checked="prefs.emailAlerts"
             >
-              <span class="toggle-thumb" :style="prefs.emailAlerts ? 'transform:translateX(18px)' : 'transform:translateX(2px)'" />
+              <span class="toggle-thumb" />
             </button>
           </div>
 
@@ -128,7 +100,7 @@
               role="switch"
               :aria-checked="prefs.sdkAlerts"
             >
-              <span class="toggle-thumb" :style="prefs.sdkAlerts ? 'transform:translateX(18px)' : 'transform:translateX(2px)'" />
+              <span class="toggle-thumb" />
             </button>
           </div>
 
@@ -144,7 +116,7 @@
               role="switch"
               :aria-checked="prefs.sidebarExpanded"
             >
-              <span class="toggle-thumb" :style="prefs.sidebarExpanded ? 'transform:translateX(18px)' : 'transform:translateX(2px)'" />
+              <span class="toggle-thumb" />
             </button>
           </div>
 
@@ -227,34 +199,11 @@ onMounted(async () => {
     const res = await $fetch<{ email: string; userId: string }>('/api/auth/me')
     me.email  = res.email
     me.userId = res.userId
-    profile.email = res.email
   } catch {
     router.push('/login')
   }
   loadPrefs()
 })
-
-// ── Profile ───────────────────────────────────────────────────────
-const profile = reactive({ email: '', loading: false, success: '', error: '' })
-
-async function saveProfile() {
-  profile.loading = true
-  profile.success = ''
-  profile.error   = ''
-  try {
-    await $fetch('/api/auth/profile', {
-      method: 'PATCH',
-      body: { email: profile.email.trim() },
-    })
-    me.email = profile.email.trim()
-    profile.success = 'Profile saved successfully.'
-  } catch (e: any) {
-    profile.error = e?.data?.statusMessage || 'Failed to save profile.'
-  } finally {
-    profile.loading = false
-    if (profile.success) setTimeout(() => { profile.success = '' }, 3000)
-  }
-}
 
 // ── Password ──────────────────────────────────────────────────────
 const pwd = reactive({ current: '', next: '', confirm: '', loading: false, success: '', error: '' })
@@ -266,8 +215,8 @@ const pwdStrength = computed(() => {
   if (p.length >= 12) score++
   if (/[A-Z]/.test(p) && /[a-z]/.test(p)) score++
   if (/[0-9]/.test(p) && /[^a-zA-Z0-9]/.test(p)) score++
-  const labels = ['', 'Weak', 'Fair', 'Good', 'Strong']
-  const colors = ['', 'bg-fuse-red', 'bg-fuse-orange', 'bg-fuse-yellow', 'bg-fuse-green']
+  const labels    = ['', 'Weak', 'Fair', 'Good', 'Strong']
+  const colors    = ['', 'bg-fuse-red', 'bg-fuse-orange', 'bg-fuse-yellow', 'bg-fuse-green']
   const textColors = ['', 'text-fuse-red', 'text-fuse-orange', 'text-fuse-yellow', 'text-fuse-green']
   return { score, label: labels[score], color: colors[score], textColor: textColors[score] }
 })
@@ -275,8 +224,8 @@ const pwdStrength = computed(() => {
 async function changePassword() {
   pwd.success = ''
   pwd.error   = ''
-  if (!pwd.current)           { pwd.error = 'Current password is required.'; return }
-  if (pwd.next.length < 8)    { pwd.error = 'New password must be at least 8 characters.'; return }
+  if (!pwd.current)             { pwd.error = 'Current password is required.'; return }
+  if (pwd.next.length < 8)      { pwd.error = 'New password must be at least 8 characters.'; return }
   if (pwd.next !== pwd.confirm) { pwd.error = 'New passwords do not match.'; return }
   pwd.loading = true
   try {
@@ -358,9 +307,7 @@ async function deleteAccount() {
     placeholder:text-fuse-muted disabled:opacity-50 disabled:cursor-not-allowed;
 }
 
-.notice {
-  @apply text-xs rounded-lg px-3 py-2.5 border;
-}
+.notice { @apply text-xs rounded-lg px-3 py-2.5 border; }
 .notice--success { @apply text-fuse-green border-fuse-green/20 bg-fuse-green/[0.06]; }
 .notice--error   { @apply text-fuse-red   border-fuse-red/20   bg-fuse-red/[0.06];   }
 
@@ -384,7 +331,7 @@ async function deleteAccount() {
     py-2 rounded-lg transition-all flex items-center;
 }
 
-/* Toggle */
+/* ── Toggle — FIXED ──────────────────────────────────────────────── */
 .toggle-track {
   position: relative;
   width: 38px;
@@ -397,8 +344,10 @@ async function deleteAccount() {
   flex-shrink: 0;
 }
 .toggle-track:focus-visible { box-shadow: 0 0 0 2px rgba(255,51,51,0.4); }
+
 .toggle-on  { background: rgba(0,255,136,0.18); border-color: rgba(0,255,136,0.35); }
 .toggle-off { background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.12); }
+
 .toggle-thumb {
   position: absolute;
   top: 50%;
@@ -406,9 +355,9 @@ async function deleteAccount() {
   width: 16px;
   height: 16px;
   border-radius: 50%;
-  transition: transform 0.2s cubic-bezier(0.4,0,0.2,1), background 0.2s;
+  transition: left 0.2s cubic-bezier(0.4,0,0.2,1), background 0.2s;
   pointer-events: none;
 }
-.toggle-on  .toggle-thumb { background: #00ff88; }
-.toggle-off .toggle-thumb { background: #555555; }
+.toggle-on  .toggle-thumb { left: 18px; background: #00ff88; }
+.toggle-off .toggle-thumb { left: 2px;  background: #555555; }
 </style>

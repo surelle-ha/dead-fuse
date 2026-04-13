@@ -21,7 +21,7 @@
       <template v-else>
         <div class="bubble-panel" :style="panelStyle">
 
-          <!-- Header — draggable -->
+          <!-- Header — draggable, minimize only -->
           <div
             class="bubble-panel-header"
             @mousedown.prevent="startDrag"
@@ -34,14 +34,9 @@
                 {{ bubble.instanceName }}
               </span>
             </div>
-            <div class="flex items-center gap-0.5 flex-shrink-0">
-              <button @click.stop="bubble.open = false" class="hdr-btn" title="Minimise">
-                <Minus class="w-3 h-3" />
-              </button>
-              <button @click.stop="hide()" class="hdr-btn hdr-btn--close" title="Close">
-                <X class="w-3 h-3" />
-              </button>
-            </div>
+            <button @click.stop="bubble.open = false" class="hdr-btn" title="Minimise">
+              <Minus class="w-3 h-3" />
+            </button>
           </div>
 
           <!-- Config -->
@@ -93,15 +88,6 @@
             </div>
           </div>
 
-          <!-- Footer link -->
-          <div class="px-3 pb-3">
-            <NuxtLink
-              :to="`/sdk-tester?projectId=${cfg.projectId}&token=${cfg.token}&name=${encodeURIComponent(bubble.instanceName || '')}`"
-              class="block text-center text-[10px] font-mono text-fuse-muted hover:text-fuse-dim border border-white/[0.07] hover:border-white/[0.12] rounded-lg py-1.5 transition-all"
-            >
-              Open full tester →
-            </NuxtLink>
-          </div>
         </div>
       </template>
 
@@ -110,102 +96,106 @@
 </template>
 
 <script setup lang="ts">
-import { FlaskConical, Minus, X } from 'lucide-vue-next'
+import { FlaskConical, Minus } from 'lucide-vue-next'
 import DeadFuse from '@surelle-ha/dead-fuse'
 
-const { bubble, hide } = useSdkTester()
+const { bubble } = useSdkTester()
 
 // ── Position ──────────────────────────────────────────────────────
-// We track distance from the BOTTOM-RIGHT corner of the viewport.
-// This way the bubble stays put when toggling open/closed regardless
-// of the panel height, and we never go off-screen.
+// Tracks distance from the BOTTOM-RIGHT corner of the viewport.
 const PANEL_W  = 320
-const PANEL_H  = 480   // approximate max height of expanded panel
+const PANEL_H  = 460
 const FAB_SIZE = 44
 const MARGIN   = 24
 
-const edgeRight  = ref(MARGIN)   // px from right edge
-const edgeBottom = ref(MARGIN)   // px from bottom edge
+const edgeRight  = ref(MARGIN)
+const edgeBottom = ref(MARGIN)
 
-const wrapRef = ref<HTMLElement | null>(null)
-const logRef  = ref<HTMLElement | null>(null)
+const logRef = ref<HTMLElement | null>(null)
 
-// The wrapper sits at a fixed position derived from bottom/right
 const wrapStyle = computed(() => ({
-  position:   'fixed'      as const,
+  position:   'fixed'   as const,
   right:      `${edgeRight.value}px`,
   bottom:     `${edgeBottom.value}px`,
   zIndex:     9999,
-  userSelect: 'none'       as const,
+  userSelect: 'none'    as const,
 }))
 
-// The panel opens UP and to the LEFT from the FAB anchor.
-// We use absolute positioning relative to the wrapper so it stays
-// connected to the bubble regardless of where it was dragged.
 const panelStyle = computed(() => {
-  // Clamp so the panel never exceeds the viewport top
-  const maxH = Math.min(PANEL_H, window.innerHeight - edgeBottom.value - FAB_SIZE - 8)
+  const maxH = Math.min(PANEL_H, (typeof window !== 'undefined' ? window.innerHeight : 800) - edgeBottom.value - FAB_SIZE - 8)
   return {
-    position:     'absolute'  as const,
-    bottom:       `${FAB_SIZE + 8}px`,   // 8px gap above FAB
-    right:        '0px',
-    width:        `${PANEL_W}px`,
-    maxHeight:    `${maxH}px`,
-    overflowY:    'auto'      as const,
+    position:   'absolute' as const,
+    bottom:     `${FAB_SIZE + 8}px`,
+    right:      '0px',
+    width:      `${PANEL_W}px`,
+    maxHeight:  `${maxH}px`,
+    overflowY:  'auto'     as const,
   }
 })
 
 // ── Drag ──────────────────────────────────────────────────────────
-// We move the bubble by adjusting bottom/right offsets.
-// On mousedown we record the initial viewport position of the pointer
-// plus the current offsets, then compute new offsets on mousemove.
+// We track where the pointer was when the drag started, and the
+// edge offsets at that moment. On move we compute the delta and
+// apply it correctly:
+//   - Moving pointer RIGHT  → element moves right  → edgeRight  DECREASES
+//   - Moving pointer LEFT   → element moves left   → edgeRight  INCREASES
+//   - Moving pointer DOWN   → element moves down   → edgeBottom DECREASES  ← was inverted before
+//   - Moving pointer UP     → element moves up     → edgeBottom INCREASES
 
-let dragStartClientX = 0
-let dragStartClientY = 0
-let dragStartRight   = 0
-let dragStartBottom  = 0
+let dragOriginX     = 0
+let dragOriginY     = 0
+let dragOriginRight  = 0
+let dragOriginBottom = 0
+
+function clampRight(v: number)  { return Math.max(0, Math.min((typeof window !== 'undefined' ? window.innerWidth  : 1920) - FAB_SIZE, v)) }
+function clampBottom(v: number) { return Math.max(0, Math.min((typeof window !== 'undefined' ? window.innerHeight : 1080) - FAB_SIZE, v)) }
 
 function startDrag(e: MouseEvent) {
-  dragStartClientX = e.clientX
-  dragStartClientY = e.clientY
-  dragStartRight   = edgeRight.value
-  dragStartBottom  = edgeBottom.value
+  dragOriginX      = e.clientX
+  dragOriginY      = e.clientY
+  dragOriginRight  = edgeRight.value
+  dragOriginBottom = edgeBottom.value
 
-  const onMove = (me: MouseEvent) => {
-    const dx = me.clientX - dragStartClientX
-    const dy = me.clientY - dragStartClientY
-    // Moving right → decrease edgeRight; moving down → decrease edgeBottom
-    const newRight  = Math.max(0, Math.min(window.innerWidth  - FAB_SIZE, dragStartRight  - dx))
-    const newBottom = Math.max(0, Math.min(window.innerHeight - FAB_SIZE, dragStartBottom + dy))
-    edgeRight.value  = newRight
-    edgeBottom.value = newBottom
+  const onMove = (ev: MouseEvent) => {
+    const dx = ev.clientX - dragOriginX   // positive = moved right
+    const dy = ev.clientY - dragOriginY   // positive = moved down
+
+    // Moving right → edgeRight shrinks (element moves toward right edge)
+    edgeRight.value  = clampRight(dragOriginRight  - dx)
+    // Moving down  → edgeBottom shrinks (element moves toward bottom edge)
+    edgeBottom.value = clampBottom(dragOriginBottom - dy)
   }
+
   const onUp = () => {
     window.removeEventListener('mousemove', onMove)
     window.removeEventListener('mouseup',   onUp)
   }
+
   window.addEventListener('mousemove', onMove)
   window.addEventListener('mouseup',   onUp)
 }
 
 function startDragTouch(e: TouchEvent) {
   const t0 = e.touches[0]
-  dragStartClientX = t0.clientX
-  dragStartClientY = t0.clientY
-  dragStartRight   = edgeRight.value
-  dragStartBottom  = edgeBottom.value
+  dragOriginX      = t0.clientX
+  dragOriginY      = t0.clientY
+  dragOriginRight  = edgeRight.value
+  dragOriginBottom = edgeBottom.value
 
-  const onMove = (te: TouchEvent) => {
-    const t = te.touches[0]
-    const dx = t.clientX - dragStartClientX
-    const dy = t.clientY - dragStartClientY
-    edgeRight.value  = Math.max(0, Math.min(window.innerWidth  - FAB_SIZE, dragStartRight  - dx))
-    edgeBottom.value = Math.max(0, Math.min(window.innerHeight - FAB_SIZE, dragStartBottom + dy))
+  const onMove = (ev: TouchEvent) => {
+    const t  = ev.touches[0]
+    const dx = t.clientX - dragOriginX
+    const dy = t.clientY - dragOriginY
+
+    edgeRight.value  = clampRight(dragOriginRight  - dx)
+    edgeBottom.value = clampBottom(dragOriginBottom - dy)
   }
+
   const onEnd = () => {
     window.removeEventListener('touchmove', onMove)
     window.removeEventListener('touchend',  onEnd)
   }
+
   window.addEventListener('touchmove', onMove, { passive: true })
   window.addEventListener('touchend',  onEnd)
 }
@@ -351,7 +341,6 @@ function logColor(type: string) {
   border: none; background: none; cursor: pointer;
 }
 .hdr-btn:hover { color: #ababab; background: rgba(255,255,255,0.05); }
-.hdr-btn--close:hover { color: #ff3333; }
 
 /* Form elements */
 .b-label {
