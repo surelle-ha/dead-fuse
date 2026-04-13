@@ -19,7 +19,7 @@ importers:
         version: 2.102.1
       '@surelle-ha/dead-fuse':
         specifier: workspace:*
-        version: link:../../packages/client
+        version: link:../../packages/dead-fuse
       bcryptjs:
         specifier: ^2.4.3
         version: 2.4.3
@@ -65,7 +65,7 @@ importers:
         specifier: ^5.4.5
         version: 5.9.3
 
-  packages/client:
+  packages/dead-fuse:
     dependencies:
       '@supabase/supabase-js':
         specifier: ^2.102.1
