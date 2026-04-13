@@ -52,7 +52,7 @@
 </template>
 
 <script setup lang="ts">
-definePageMeta({ layout: false })
+definePageMeta({ layout: 'public' })
 
 const router = useRouter()
 const tabs = ref<('login' | 'register')[]>(['login', 'register'])

@@ -17,24 +17,36 @@ export default defineEventHandler(async (event) => {
 
   let planName: string | null = null;
   let planLimit: number | null = null;
+  let resolvedPlanId: string | null = null;
 
   if (user.plan_id) {
     const { data: plan } = await sb
       .from("pricing_plans")
-      .select("name, project_limit")
+      .select("id, name, project_limit")
       .eq("id", user.plan_id)
       .single();
 
     if (plan) {
+      resolvedPlanId = plan.id;
       planName = plan.name ?? null;
       planLimit = plan.project_limit;
     }
   }
 
-  let effectiveLimit = user.project_limit ?? planLimit ?? 2;
-  if (planLimit != null) {
-    effectiveLimit = Math.max(effectiveLimit, planLimit);
+  if (!resolvedPlanId) {
+    const { data: freePlan } = await sb
+      .from("pricing_plans")
+      .select("id, name, project_limit")
+      .eq("slug", "free")
+      .single();
+
+    if (freePlan) {
+      planName = freePlan.name ?? planName;
+      planLimit = planLimit ?? freePlan.project_limit;
+    }
   }
+
+  let effectiveLimit = Math.max(user.project_limit ?? 0, planLimit ?? 0, 2);
 
   return {
     userId: user.id,

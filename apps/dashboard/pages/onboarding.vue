@@ -132,7 +132,7 @@
 </template>
 
 <script setup lang="ts">
-definePageMeta({ layout: false })
+definePageMeta({ layout: 'public' })
 
 const router = useRouter()
 const copied = ref('')

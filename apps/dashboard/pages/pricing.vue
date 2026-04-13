@@ -177,7 +177,7 @@
 </template>
 
 <script setup lang="ts">
-definePageMeta({ layout: false })
+definePageMeta({ layout: 'public' })
 
 const billing = ref<'monthly' | 'yearly'>('monthly')
 const showRequestSlotIncrease = ref(true)

@@ -16,6 +16,18 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: "Missing pricing plan id." });
   }
 
+  const { data: existingPlan, error: existingPlanError } = await sb
+    .from("pricing_plans")
+    .select("project_limit")
+    .eq("id", planId)
+    .single();
+
+  if (existingPlanError || !existingPlan) {
+    throw createError({ statusCode: 404, statusMessage: "Pricing plan not found." });
+  }
+
+  const oldPlanLimit = existingPlan.project_limit;
+
   const updatePayload: Record<string, any> = {};
   if (name !== undefined) updatePayload.name = name;
   if (slug !== undefined) updatePayload.slug = slug;
@@ -43,6 +55,17 @@ export default defineEventHandler(async (event) => {
 
   if (error || !data) {
     throw createError({ statusCode: 500, statusMessage: error?.message ?? "Failed to update pricing plan." });
+  }
+
+  if (project_limit !== undefined && typeof oldPlanLimit === "number" && project_limit !== oldPlanLimit) {
+    const { error: syncError } = await sb
+      .from("users")
+      .update({ project_limit })
+      .eq("plan_id", planId);
+
+    if (syncError) {
+      throw createError({ statusCode: 500, statusMessage: syncError?.message ?? "Failed to sync user limits after pricing plan update." });
+    }
   }
 
   return data;

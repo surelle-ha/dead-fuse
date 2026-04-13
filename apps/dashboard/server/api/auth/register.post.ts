@@ -68,6 +68,12 @@ export default defineEventHandler(async (event) => {
   const existingAdmins = Number(count) || 0;
   const role = existingAdmins === 0 ? "admin" : "user";
 
+  const { data: freePlan } = await sb
+    .from("pricing_plans")
+    .select("id, project_limit")
+    .eq("slug", "free")
+    .single();
+
   // Create user
   const { data: newUser, error: insertErr } = await sb
     .from("users")
@@ -75,6 +81,8 @@ export default defineEventHandler(async (event) => {
       email: email.trim().toLowerCase(),
       password_hash: passwordHash,
       role,
+      plan_id: freePlan?.id ?? null,
+      project_limit: freePlan?.project_limit ?? 2,
     })
     .select("id, email")
     .single();

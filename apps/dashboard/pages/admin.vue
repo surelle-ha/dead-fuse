@@ -475,6 +475,7 @@ async function savePlan() {
       await $fetch('/api/admin/plans', { method: 'POST', body: payload })
     }
     await refreshPlans()
+    await refresh()
     cancelPlanEdit()
   } catch (err: any) {
     planFormError.value = err?.data?.statusMessage || 'Unable to save pricing plan.'

@@ -3,11 +3,9 @@
   "private": true,
   "scripts": {
     "dev:dashboard": "pnpm --filter dashboard dev",
-    "dev:landing": "pnpm --filter landing dev",
-    "build": "pnpm --filter @surelle-ha/dead-fuse build && pnpm --filter dashboard build && pnpm --filter landing build",
+    "build": "pnpm --filter @surelle-ha/dead-fuse build && pnpm --filter dashboard build",
     "build:client": "pnpm --filter @surelle-ha/dead-fuse build",
     "build:dashboard": "pnpm --filter dashboard build",
-    "build:landing": "pnpm --filter landing build",
     "migrate": "pnpm --filter dashboard migrate",
     "lint": "pnpm -r lint",
     "typecheck": "pnpm -r typecheck"

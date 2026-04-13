@@ -2,9 +2,13 @@ export default defineNuxtRouteMiddleware(async (to) => {
   // Skip middleware for public pages
   if (to.path === '/login' || to.path === '/onboarding') return
 
+  const headers = useRequestHeaders(['cookie'])
+
   // Check onboarding status first
   try {
-    const status = await $fetch<{ configured: boolean }>('/api/onboarding/status')
+    const status = await $fetch<{ configured: boolean }>('/api/onboarding/status', {
+      headers,
+    })
     if (!status.configured && to.path !== '/onboarding') {
       return navigateTo('/onboarding')
     }
@@ -14,7 +18,7 @@ export default defineNuxtRouteMiddleware(async (to) => {
 
   // Check auth
   try {
-    await $fetch('/api/auth/me')
+    await $fetch('/api/auth/me', { headers })
   } catch {
     return navigateTo('/login')
   }
