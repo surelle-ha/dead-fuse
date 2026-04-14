@@ -17,6 +17,19 @@
         <!-- ── Left column ──────────────────────────────────────── -->
         <div class="space-y-5">
 
+          <div v-if="project?.status === 'suspended'"
+          class="rounded-xl border border-white/[0.06] bg-white/[0.02] px-4 py-3 flex items-center gap-3 mb-2"
+        >
+          <PauseCircle class="w-4 h-4 text-fuse-muted flex-shrink-0" />
+          <div class="flex-1 min-w-0">
+            <p class="text-xs font-semibold text-fuse-dim">This project is suspended</p>
+            <p class="text-[10px] text-fuse-muted mt-0.5">
+              Your plan limit was exceeded. The deployed SDK app is still running at its last state.
+              <NuxtLink to="/pricing" class="text-fuse-blue hover:underline">Upgrade to manage it again.</NuxtLink>
+            </p>
+          </div>
+        </div>
+
           <!-- Stats -->
           <div class="grid grid-cols-3 gap-3">
             <div class="stat-card">
@@ -39,7 +52,7 @@
             <p class="text-fuse-muted text-[10px] mb-4 leading-relaxed">
               Changing state broadcasts to <strong class="text-fuse-dim">all instances</strong> of this project simultaneously.
             </p>
-            <StateToggle :current="project.state" @change="onStateChange" :loading="stateLoading" />
+            <StateToggle :current="project.state" @change="onStateChange" :loading="stateLoading" :disabled="project?.status === 'suspended'" />
           </div>
 
           <!-- Client message -->
@@ -47,8 +60,8 @@
             <h2 class="panel-title">Client message</h2>
             <p class="text-fuse-dim text-xs mb-3">Broadcast to all instances in WARNING and LOCKED states.</p>
             <div class="flex gap-2">
-              <input v-model="message" type="text" class="field-input flex-1 text-xs" placeholder="Invoice overdue. Please contact support." />
-              <button @click="updateMessage" :disabled="msgLoading" class="btn-secondary text-xs px-3">{{ msgLoading ? '…' : 'Save' }}</button>
+              <input v-model="message" type="text" class="field-input flex-1 text-xs" placeholder="Invoice overdue. Please contact support." :disabled="project?.status === 'suspended'" />
+              <button @click="updateMessage" :disabled="msgLoading || project?.status === 'suspended'" class="btn-secondary text-xs px-3">{{ msgLoading ? '…' : 'Save' }}</button>
             </div>
           </div>
 
@@ -57,9 +70,9 @@
             <h2 class="panel-title">Grace period</h2>
             <p class="text-fuse-dim text-xs mb-3">Days before restrictions apply after a state change.</p>
             <div class="flex gap-2 items-center">
-              <input v-model.number="gracePeriod" type="number" min="0" max="365" class="field-input w-24 text-xs" />
+              <input v-model.number="gracePeriod" type="number" min="0" max="365" class="field-input w-24 text-xs" :disabled="project?.status === 'suspended'" />
               <span class="text-fuse-muted text-xs">days</span>
-              <button @click="updateGracePeriod" :disabled="graceLoading" class="btn-secondary text-xs px-3 ml-auto">{{ graceLoading ? '…' : 'Update' }}</button>
+              <button @click="updateGracePeriod" :disabled="graceLoading || project?.status === 'suspended'" class="btn-secondary text-xs px-3 ml-auto">{{ graceLoading ? '…' : 'Update' }}</button>
             </div>
           </div>
 
@@ -67,7 +80,7 @@
           <div class="panel">
             <div class="flex items-center justify-between mb-1">
               <h2 class="panel-title mb-0">Instances</h2>
-              <button @click="showAddInstance = true" class="btn-ghost text-xs flex items-center gap-1.5">
+              <button @click="showAddInstance = true" :disabled="project?.status === 'suspended'" class="btn-ghost text-xs flex items-center gap-1.5">
                 <Plus class="w-3 h-3" /> Add instance
               </button>
             </div>
@@ -87,7 +100,7 @@
               </div>
               <p class="text-fuse-dim text-xs font-medium mb-1">No instances yet</p>
               <p class="text-fuse-muted text-[10px] max-w-xs mx-auto">Add a dev, staging, or prod instance. Each gets its own SDK token.</p>
-              <button @click="showAddInstance = true" class="mt-4 btn-primary text-xs px-4">Add first instance</button>
+              <button @click="showAddInstance = true" :disabled="project?.status === 'suspended'" class="mt-4 btn-primary text-xs px-4">Add first instance</button>
             </div>
 
             <!-- List -->
@@ -124,17 +137,17 @@
                     </template>
                   </div>
                   <div class="flex items-center gap-1 flex-shrink-0">
-                    <button @click="startRename(inst)" class="icon-btn" title="Rename"><Pencil class="w-3 h-3" /></button>
-                    <button @click="copyToken(inst.token)" class="icon-btn" title="Copy token"><Copy class="w-3 h-3" /></button>
-                    <button @click="openTester(inst)" class="icon-btn" title="Test this instance"><FlaskConical class="w-3 h-3" /></button>
-                    <button @click="confirmRemoveInstance(inst)" class="icon-btn hover:!text-fuse-red" title="Remove"><Trash2 class="w-3 h-3" /></button>
+                    <button @click="startRename(inst)" :disabled="project?.status === 'suspended'" class="icon-btn" title="Rename"><Pencil class="w-3 h-3" /></button>
+                    <button @click="copyToken(inst.token)" :disabled="project?.status === 'suspended'" class="icon-btn" title="Copy token"><Copy class="w-3 h-3" /></button>
+                    <button @click="openTester(inst)" :disabled="project?.status === 'suspended'" class="icon-btn" title="Test this instance"><FlaskConical class="w-3 h-3" /></button>
+                    <button @click="confirmRemoveInstance(inst)" :disabled="project?.status === 'suspended'" class="icon-btn hover:!text-fuse-red" title="Remove"><Trash2 class="w-3 h-3" /></button>
                   </div>
                 </div>
 
                 <!-- Token -->
                 <div class="flex items-center gap-2 bg-black/20 border border-white/[0.05] rounded-lg px-2.5 py-1.5 mb-3">
                   <code class="text-[10px] font-mono text-fuse-muted flex-1 truncate">{{ inst.token }}</code>
-                  <button @click="copyToken(inst.token)" class="text-[9px] font-mono text-fuse-muted hover:text-fuse-dim border border-white/[0.06] rounded px-1.5 py-0.5 flex-shrink-0 transition-colors">Copy</button>
+                  <button @click="copyToken(inst.token)" :disabled="project?.status === 'suspended'" class="text-[9px] font-mono text-fuse-muted hover:text-fuse-dim border border-white/[0.06] rounded px-1.5 py-0.5 flex-shrink-0 transition-colors">Copy</button>
                 </div>
 
                 <!-- Monitoring toggle + connection status -->
@@ -152,6 +165,7 @@
                     :class="inst.deployed ? 'toggle-on' : 'toggle-off'"
                     role="switch"
                     :aria-checked="inst.deployed"
+                    :disabled="project?.status === 'suspended'"
                   >
                     <span class="toggle-thumb" />
                   </button>
@@ -729,6 +743,11 @@ onMounted(async () => {
     message.value     = project.value.message || ''
     gracePeriod.value = project.value.grace_period
   } catch { notFound.value = true; return }
+
+  if (project.value?.status === 'suspended') {
+    // Suspended projects load in read-only mode.
+  }
+
   await loadInstances()
   await subscribePresence()
 })

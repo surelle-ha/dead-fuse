@@ -12,7 +12,7 @@ export default defineEventHandler(async (event) => {
 
     let query = sb
       .from("projects")
-      .select("id, name, project_key, public_token, state, message, grace_period, client_name, target_completion, description, budget, priority, created_at, updated_at")
+      .select("id, name, project_key, public_token, state, message, grace_period, client_name, target_completion, description, budget, priority, status, created_at, updated_at")
       .eq("user_id", auth.id);
 
     if (hideDeleted) {
@@ -43,7 +43,8 @@ export default defineEventHandler(async (event) => {
     let countQuery = sb
       .from("projects")
       .select("id")
-      .eq("user_id", auth.id);
+      .eq("user_id", auth.id)
+      .eq("status", "active");
 
     if (hideDeleted) {
       countQuery = countQuery.is("deleted_at", null);
@@ -57,7 +58,7 @@ export default defineEventHandler(async (event) => {
 
     const { data: user, error: userError } = await sb
       .from("users")
-      .select("plan_id, project_limit")
+      .select("plan_id, project_limit, plan_expires_at")
       .eq("id", auth.id)
       .single();
 
@@ -65,9 +66,12 @@ export default defineEventHandler(async (event) => {
       throw createError({ statusCode: 404, statusMessage: "User not found." });
     }
 
+    const hasActivePlan = (planId?: string | null, expiresAt?: string | null) =>
+      Boolean(planId && (!expiresAt || new Date(expiresAt).getTime() > Date.now()));
+
     let planLimit: number | null = null;
 
-    if (user.plan_id) {
+    if (hasActivePlan(user.plan_id, user.plan_expires_at)) {
       const { data: plan } = await sb
         .from("pricing_plans")
         .select("project_limit")
@@ -79,7 +83,16 @@ export default defineEventHandler(async (event) => {
       }
     }
 
-    const effectiveLimit = Math.max(user.project_limit ?? 0, planLimit ?? 0, 2);
+    if (planLimit == null) {
+      const { data: freePlan } = await sb
+        .from("pricing_plans")
+        .select("project_limit")
+        .eq("slug", "free")
+        .single();
+      planLimit = freePlan?.project_limit ?? 2;
+    }
+
+    const effectiveLimit = planLimit;
 
     if ((existingProjects || []).length >= effectiveLimit) {
       throw createError({

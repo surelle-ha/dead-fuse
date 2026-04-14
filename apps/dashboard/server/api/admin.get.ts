@@ -55,7 +55,7 @@ export default defineEventHandler(async (event) => {
 
   const adminUsers = (users || []).map((user: { id: string; email: string; role?: string | null; project_limit?: number | null; plan_id?: string | null; plan_expires_at?: string | null }) => {
     const planLimit = user.plan_id ? undefined : freeProjectLimit;
-    const effectiveLimit = Math.max(user.project_limit ?? 0, planLimit ?? 0, 2);
+    const effectiveLimit = Math.max(planLimit ?? 0, 2);
 
     return {
       id: user.id,

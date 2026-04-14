@@ -19,7 +19,10 @@ export default defineEventHandler(async (event) => {
   let planLimit: number | null = null;
   let resolvedPlanId: string | null = null;
 
-  if (user.plan_id) {
+  const hasActivePlan = (planId?: string | null, expiresAt?: string | null) =>
+    Boolean(planId && (!expiresAt || new Date(expiresAt).getTime() > Date.now()));
+
+  if (hasActivePlan(user.plan_id, user.plan_expires_at)) {
     const { data: plan } = await sb
       .from("pricing_plans")
       .select("id, name, project_limit")
@@ -46,7 +49,7 @@ export default defineEventHandler(async (event) => {
     }
   }
 
-  let effectiveLimit = Math.max(user.project_limit ?? 0, planLimit ?? 0, 2);
+  let effectiveLimit = planLimit ?? 2;
 
   return {
     userId: user.id,

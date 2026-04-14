@@ -28,7 +28,7 @@
         <div class="flex items-center justify-between gap-3">
           <div>
             <p class="text-fuse-red text-xs font-semibold mb-0.5">Project limit reached</p>
-            <p class="text-fuse-red/60 text-[10px]">You're on the {{ planName.value || 'Free' }} plan ({{ projectLimit.value }} projects). Upgrade to create more.</p>
+            <p class="text-fuse-red/60 text-[10px]">You're on the {{ planName || 'Free' }} plan ({{ projectLimit }} projects). Upgrade to create more.</p>
           </div>
           <NuxtLink to="/pricing" class="btn-upgrade flex-shrink-0">Upgrade →</NuxtLink>
         </div>
@@ -132,10 +132,19 @@
     </Teleport>
 
     <DashboardFooter />
+
+    <PlanDowngradeModal
+      :show="showDowngradeModal"
+      :plan-limit="projectLimit"
+      :projects="projects"
+      @resolved="onDowngradeResolved"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
+import PlanDowngradeModal from '~/components/PlanDowngradeModal.vue'
+
 definePageMeta({ middleware: 'auth' })
 
 const router = useRouter()
@@ -146,6 +155,11 @@ const createLoading = ref(false)
 const createError = ref('')
 const projectLimit = ref(2)
 const planName = ref('Free')
+const showDowngradeModal = ref(false)
+
+const activeProjectsForElection = computed(() =>
+  projects.value.filter(p => p.status !== 'suspended')
+)
 
 const newProject = reactive({
   name: '',
@@ -157,7 +171,7 @@ const newProject = reactive({
   priority: 'medium'
 })
 
-const limitReached = computed(() => projects.value.length >= projectLimit.value)
+const limitReached = computed(() => activeProjectsForElection.value.length >= projectLimit.value)
 
 const projectStats = computed(() => {
   const counts: Record<string, number> = {}
@@ -180,7 +194,54 @@ onMounted(async () => {
     return
   }
   await loadProjects()
+  await checkDowngradeStatus()
 })
+
+function downgradeElectionSeenKey(electionId: string) {
+  return `downgrade-election-seen:${electionId}`
+}
+
+function hasSeenDowngradeElection(electionId: string | null) {
+  return electionId ? localStorage.getItem(downgradeElectionSeenKey(electionId)) === 'true' : false
+}
+
+function markDowngradeElectionSeen(electionId: string | null) {
+  if (!electionId) return
+  localStorage.setItem(downgradeElectionSeenKey(electionId), 'true')
+}
+
+async function checkDowngradeStatus() {
+  try {
+    const status = await $fetch<{
+      overLimit: boolean
+      electionId?: string
+      activeCount: number
+      planLimit: number
+      excess: number
+    }>('/api/plan/downgrade-status')
+
+    console.log('[DowngradeStatus] API response:', status)
+    console.log('[DowngradeStatus] Total projects:', status.activeCount)
+    console.log('[DowngradeStatus] Plan limit:', status.planLimit)
+    console.log('[DowngradeStatus] Over limit:', status.overLimit)
+    console.log('[DowngradeStatus] Election ID:', status.electionId)
+
+    if (status.overLimit && status.electionId && !hasSeenDowngradeElection(status.electionId)) {
+      showDowngradeModal.value = true
+      markDowngradeElectionSeen(status.electionId)
+    } else {
+      showDowngradeModal.value = false
+    }
+  } catch (err: any) {
+    console.error('[DowngradeStatus] Error:', err)
+    showDowngradeModal.value = false
+  }
+}
+
+async function onDowngradeResolved() {
+  showDowngradeModal.value = false
+  await loadProjects()
+}
 
 async function loadProjects() {
   loading.value = true
